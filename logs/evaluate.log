@@ -1,0 +1,33 @@
+2026-10-28 12:46:11,192 | INFO | Held-out metrics (spatial blocks):
+             model  n_rows  n_events  n_positive  prevalence  threshold  precision  recall    f1  pr_auc  brier  events_with_positives  event_detection_rate  events_with_negatives  event_false_alarm_rate
+              H_rf   72882       171       13903       0.191        0.5      0.618   0.467 0.532   0.578  0.128                    162                 0.877                    171                   0.848
+          H_logreg   72882       171       13903       0.191        0.5      0.275   0.524 0.360   0.304  0.234                    162                 0.988                    171                   0.994
+rule_low_elevation   72882       171       13903       0.191        0.5      0.202   0.545 0.294   0.257    NaN                    162                 0.574                    171                   0.567
+2026-10-28 12:51:08,101 | INFO | G6 comparison (bootstrap over whole spatial blocks, PR-AUC difference):
+          baseline candidate  mean_pr_auc_diff  ci95_low  ci95_high  valid_replicates                  verdict
+rule_low_elevation  H_logreg             0.045     0.016      0.072              1000 improvement (CI above 0)
+rule_low_elevation      H_rf             0.318     0.275      0.360              1000 improvement (CI above 0)
+          H_logreg      H_rf             0.273     0.239      0.310              1000 improvement (CI above 0)
+2026-10-28 12:51:09,862 | INFO | Report counts alongside metrics: 72882 held-out rows, 171 spatial blocks. Small samples mean wide uncertainty.
+2026-10-28 13:51:37,059 | INFO | Held-out metrics (spatial blocks):
+             model  n_rows  n_events  n_positive  prevalence  threshold  precision  recall    f1  pr_auc  brier  events_with_positives  event_detection_rate  events_with_negatives  event_false_alarm_rate
+              H_rf   72882       171       13903       0.191        0.5      0.618   0.467 0.532   0.578  0.128                    162                 0.877                    171                   0.848
+          H_logreg   72882       171       13903       0.191        0.5      0.275   0.524 0.360   0.304  0.234                    162                 0.988                    171                   0.994
+rule_low_elevation   72882       171       13903       0.191        0.5      0.202   0.545 0.294   0.257    NaN                    162                 0.574                    171                   0.567
+2026-10-28 13:55:50,897 | INFO | G6 comparison (bootstrap over whole spatial blocks, PR-AUC difference):
+          baseline candidate  mean_pr_auc_diff  ci95_low  ci95_high  valid_replicates                  verdict
+rule_low_elevation  H_logreg             0.045     0.016      0.072              1000 improvement (CI above 0)
+rule_low_elevation      H_rf             0.318     0.275      0.360              1000 improvement (CI above 0)
+          H_logreg      H_rf             0.273     0.239      0.310              1000 improvement (CI above 0)
+2026-10-28 13:55:52,166 | INFO | Report counts alongside metrics: 72882 held-out rows, 171 spatial blocks. Small samples mean wide uncertainty.
+2026-10-28 17:59:18,279 | INFO | Held-out metrics (spatial blocks):
+             model  n_rows  n_events  n_positive  prevalence  threshold  precision  recall    f1  pr_auc  brier  events_with_positives  event_detection_rate  events_with_negatives  event_false_alarm_rate
+              H_rf   72882       171       13903       0.191        0.5      0.618   0.467 0.532   0.578  0.128                    162                 0.877                    171                   0.848
+          H_logreg   72882       171       13903       0.191        0.5      0.275   0.524 0.360   0.304  0.234                    162                 0.988                    171                   0.994
+rule_low_elevation   72882       171       13903       0.191        0.5      0.202   0.545 0.294   0.257    NaN                    162                 0.574                    171                   0.567
+2026-10-28 18:03:28,977 | INFO | G6 comparison (bootstrap over whole spatial blocks, PR-AUC difference):
+          baseline candidate  mean_pr_auc_diff  ci95_low  ci95_high  valid_replicates                  verdict
+rule_low_elevation  H_logreg             0.045     0.016      0.072              1000 improvement (CI above 0)
+rule_low_elevation      H_rf             0.318     0.275      0.360              1000 improvement (CI above 0)
+          H_logreg      H_rf             0.273     0.239      0.310              1000 improvement (CI above 0)
+2026-10-28 18:03:30,064 | INFO | Report counts alongside metrics: 72882 held-out rows, 171 spatial blocks. Small samples mean wide uncertainty.

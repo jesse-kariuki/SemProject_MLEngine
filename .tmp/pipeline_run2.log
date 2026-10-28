@@ -1,0 +1,157 @@
+
+===== CELL setup =====
+Project root: D:\floodguard
+Python      : D:\floodguard\.venv\Scripts\python.exe
+
+===== CELL train-run =====
+
+>>> D:\floodguard\.venv\Scripts\python.exe src/train_static.py
+2026-10-28 12:44:24,734 | WARNING | The hazard labels are FastFlood MODEL output derived from DEM/land cover/soil. H_* models learn to reproduce that model from similar inputs (an emulator). Good held-out scores show agreement with FastFlood, NOT skill at predicting real floods. For exposure use the hazard columns directly (max_hazard_value, hazard_pos_fraction).
+2026-10-28 12:44:24,737 | INFO | Training table: 72882 segments, 171 spatial blocks, 19.1% positive
+2026-10-28 12:44:36,476 | INFO | Fold 0: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 12:44:51,475 | INFO | Fold 1: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 12:45:05,115 | INFO | Fold 2: 58307 train / 14575 test segments, 34 test blocks
+2026-10-28 12:45:20,475 | INFO | Fold 3: 58308 train / 14574 test segments, 35 test blocks
+2026-10-28 12:45:31,644 | INFO | Fold 4: 58303 train / 14579 test segments, 34 test blocks
+2026-10-28 12:45:36,842 | INFO | Saved H_logreg
+2026-10-28 12:45:58,189 | INFO | Saved H_rf
+2026-10-28 12:45:58,444 | INFO | Top features (impurity importance, interpret with care):
+num__distance_to_river_m       0.365
+num__elevation_m               0.158
+num__local_relief_m            0.104
+num__slope_deg                 0.091
+num__segment_length_m          0.088
+num__vegetation_fraction       0.081
+num__builtup_fraction          0.076
+cat__road_class_residential    0.007
+2026-10-28 12:45:58,444 | INFO | Next: python src/evaluate.py --static
+--- exit=0 in 122.8 s
+
+>>> D:\floodguard\.venv\Scripts\python.exe src/evaluate.py --static
+2026-10-28 12:46:11,192 | INFO | Held-out metrics (spatial blocks):
+             model  n_rows  n_events  n_positive  prevalence  threshold  precision  recall    f1  pr_auc  brier  events_with_positives  event_detection_rate  events_with_negatives  event_false_alarm_rate
+              H_rf   72882       171       13903       0.191        0.5      0.618   0.467 0.532   0.578  0.128                    162                 0.877                    171                   0.848
+          H_logreg   72882       171       13903       0.191        0.5      0.275   0.524 0.360   0.304  0.234                    162                 0.988                    171                   0.994
+rule_low_elevation   72882       171       13903       0.191        0.5      0.202   0.545 0.294   0.257    NaN                    162                 0.574                    171                   0.567
+2026-10-28 12:51:08,101 | INFO | G6 comparison (bootstrap over whole spatial blocks, PR-AUC difference):
+          baseline candidate  mean_pr_auc_diff  ci95_low  ci95_high  valid_replicates                  verdict
+rule_low_elevation  H_logreg             0.045     0.016      0.072              1000 improvement (CI above 0)
+rule_low_elevation      H_rf             0.318     0.275      0.360              1000 improvement (CI above 0)
+          H_logreg      H_rf             0.273     0.239      0.310              1000 improvement (CI above 0)
+2026-10-28 12:51:09,862 | INFO | Report counts alongside metrics: 72882 held-out rows, 171 spatial blocks. Small samples mean wide uncertainty.
+--- exit=0 in 311.2 s
+
+===== CELL predict-run =====
+
+>>> D:\floodguard\.venv\Scripts\python.exe src/predict.py
+2026-10-28 12:51:39,666 | INFO | Wrote predictions_H_rf_static.csv, its .gpkg and risk_H_rf_static.png
+2026-10-28 12:51:39,677 | INFO | Tier counts: {'Low': 52195, 'Medium': 12485, 'High': 11803, 'Unavailable': 7113}
+2026-10-28 12:51:39,677 | WARNING | Outputs are research-prototype values: probabilities are uncalibrated until validated.
+--- exit=0 in 30.0 s
+
+===== CELL weather-run =====
+Optional weather context skipped (set RUN_WEATHER_CONTEXT = True to run it).
+
+===== CELL results-tables =====
+== Gate G4h: label summary ==
+  label_status  segments          km
+0     negative     58979  4932.87205
+1     positive     13903  1192.50393
+2      unknown     10714  1020.04323
+
+== Gate G2/G4h: coverage report ==
+                                                  value
+boundary_area_km2                            695.936805
+boundary_vertices                           1881.000000
+boundary_bbox_fill                             0.451942
+cells_total                               110463.000000
+cells_total_area_km2                        1105.728859
+footprint_area_km2                          1098.014595
+footprint_inside_boundary_km2                567.092954
+boundary_without_cells_km2                   128.843851
+boundary_covered_pct                          81.486271
+footprint_outside_boundary_km2               530.921641
+segments_total                             83596.000000
+road_km_total                               7145.415551
+segments_outside_boundary                      0.000000
+segments_intersecting_footprint            79009.000000
+segments_outside_footprint                  4587.000000
+segments_outside_footprint_pct                 5.487105
+road_km_outside_footprint                    440.738397
+segments_below_min_coverage_but_touching      44.000000
+labels_no_hazard_cells                      4587.000000
+labels_touch_only                              0.000000
+labels_minus_diagnostic                        0.000000
+
+== Held-out static metrics (whole 2 km blocks) ==
+                model  ...  event_false_alarm_rate
+0                H_rf  ...                   0.848
+1            H_logreg  ...                   0.994
+2  rule_low_elevation  ...                   0.567
+
+[3 rows x 15 columns]
+
+== Gate G6: block-bootstrap PR-AUC differences ==
+             baseline  ...                   verdict
+0  rule_low_elevation  ...  improvement (CI above 0)
+1  rule_low_elevation  ...  improvement (CI above 0)
+2            H_logreg  ...  improvement (CI above 0)
+
+[3 rows x 7 columns]
+
+== Feature importance (H_rf) ==
+                      Unnamed: 0  importance
+0       num__distance_to_river_m    0.364701
+1               num__elevation_m    0.157558
+2            num__local_relief_m    0.103624
+3                 num__slope_deg    0.091184
+4          num__segment_length_m    0.087611
+5       num__vegetation_fraction    0.081170
+6          num__builtup_fraction    0.075589
+7    cat__road_class_residential    0.007260
+8        cat__road_class_service    0.006123
+9        cat__road_class_primary    0.005235
+10     cat__road_class_secondary    0.004089
+11                num__is_bridge    0.003294
+12  cat__road_class_unclassified    0.003035
+13         cat__road_class_trunk    0.002566
+14      cat__road_class_tertiary    0.002258
+
+== Susceptibility predictions (step 9) ==
+susceptibility_tier
+High           11803
+Low            52195
+Medium         12485
+Unavailable     7113
+Name: count, dtype: int64
+susceptibility_source
+fastflood_covered               78965
+model_predicted_no_fastflood     4631
+Name: count, dtype: int64
+       susceptibility_probability
+count                   76483.000
+mean                        0.297
+std                         0.250
+min                         0.018
+25%                         0.118
+50%                         0.200
+75%                         0.384
+max                         0.990
+
+== Step timings ==
+                       step  exit_code  seconds
+0       src/train_static.py          0    122.8
+1  src/evaluate.py --static          0    311.2
+2            src/predict.py          0     30.0
+
+===== CELL results-plots =====
+outputs\maps\coverage.png
+<IPython.core.display.Image object>
+outputs\maps\risk_H_rf_static.png
+<IPython.core.display.Image object>
+outputs\metrics\static\calibration.png
+<IPython.core.display.Image object>
+outputs\metrics\static\pr_curves.png
+<IPython.core.display.Image object>
+
+NOTEBOOK RUN COMPLETE

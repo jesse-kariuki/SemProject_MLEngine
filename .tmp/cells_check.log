@@ -1,0 +1,234 @@
+
+===== CELL setup =====
+Project root: D:\floodguard
+Python      : D:\floodguard\.venv\Scripts\python.exe
+
+===== CELL sec2-eda =====
+== Raw asset inventory (extraction: CRS, resolution, boundary coverage) ==
+       asset  ...  boundary_fraction_covered
+0        dem  ...                       0.88
+1  landcover  ...                       1.00
+
+[2 rows x 12 columns]
+== Raw hazard cells (label source) ==
+rows: 110,463 | columns: ['latitude', 'longitude', 'lat_min', 'lat_max', 'lon_min', 'lon_max', 'flood_hazard']
+flood_hazard
+0    84733
+1    17551
+2     8179
+raw road features: 739,195 | CRS: EPSG:4326
+fclass before the keep-filter (top 8):
+fclass
+residential     279709
+path            149508
+unclassified    132411
+track            97599
+service          51223
+footway           7782
+tertiary          7127
+secondary         3883
+classes removed by roads.keep_fclass: ['bridleway', 'cycleway', 'footway', 'path', 'pedestrian', 'steps', 'track', 'track_grade1', 'track_grade2', 'track_grade3', 'track_grade4', 'track_grade5', 'unknown']
+== Cleaned segment table (after steps 1-4) ==
+shape: (83596, 28)
+                    dtype  missing_%  n_unique
+surface            object     100.00         0
+road_name             str      76.18      2316
+slope_deg         float64       8.55     76112
+elevation_m       float64       8.51     75884
+local_relief_m    float64       8.34     69188
+road_class            str       0.00        14
+segment_id            str       0.00     83596
+osm_id                str       0.00     46747
+centroid_lon      float64       0.00     83596
+centroid_y        float64       0.00     83596
+centroid_x        float64       0.00     83596
+segment_length_m  float64       0.00     12748
+fully empty columns: ['surface']
+duplicate segment_id: 0
+== Labels (step 5) ==
+              segments      km
+label_status                  
+negative         58979  4932.9
+positive         13903  1192.5
+unknown          10714  1020.0
+unknown reasons:
+unknown_reason
+mixed_cells              6083
+no_hazard_cells          4587
+insufficient_coverage      44
+prevalence among labelled: 0.1908
+== Feature vs target (labelled segments) ==
+               feature  median_neg  median_pos  point_biserial_r  missing_%
+0          elevation_m     1653.68     1647.26            -0.052       3.69
+1            slope_deg        3.10        3.45             0.099       3.73
+2       local_relief_m       15.70       16.47             0.037       3.50
+3  distance_to_river_m      500.36      284.53            -0.053       0.00
+4     builtup_fraction        0.96        0.84            -0.130       0.00
+5  vegetation_fraction        0.03        0.16             0.129       0.00
+6       water_fraction        0.00        0.00             0.037       0.00
+== Positive rate by road class ==
+                    n  positive_rate
+road_class                          
+primary          1067          0.364
+motorway_link     149          0.322
+motorway          349          0.304
+trunk_link        270          0.296
+trunk            1663          0.249
+primary_link      150          0.233
+secondary        4017          0.219
+unclassified     3327          0.206
+secondary_link    201          0.204
+residential     33842          0.195
+service         25734          0.167
+tertiary         1908          0.161
+tertiary_link      37          0.135
+living_street     168          0.065
+== Positive rate by elevation quintile ==
+                          n  positive_rate
+elev_quintile                             
+(1486.647, 1591.09]   14040          0.215
+(1591.09, 1630.373]   14039          0.188
+(1630.373, 1683.435]  14039          0.182
+(1683.435, 1778.099]  14039          0.168
+(1778.099, 1937.621]  14039          0.176
+== Feature correlation with the target (top 10 by |r|) ==
+  builtup_fraction         r = -0.130
+  vegetation_fraction      r = +0.129
+  slope_deg                r = +0.099
+  distance_to_river_m      r = -0.053
+  elevation_m              r = -0.052
+  local_relief_m           r = +0.037
+  water_fraction           r = +0.037
+  segment_length_m         r = +0.029
+
+===== CELL sec4-evidence =====
+== Validation design ==
+CV                 : GroupKFold 5 splits over whole spatial blocks
+block size         : 2000 m
+bootstrap          : 1000 block-level replicates
+decision threshold : 0.5
+predictors (numeric): elevation_m, slope_deg, local_relief_m, builtup_fraction, vegetation_fraction, water_fraction, distance_to_river_m, segment_length_m, is_bridge, is_tunnel
+predictors (categorical): road_class
+modelling table    : 72882 rows x 44 cols | 171 spatial blocks
+
+== Held-out metrics (whole-block folds) ==
+                model  n_rows  n_positive  ...  recall  pr_auc  brier
+0                H_rf   72882       13903  ...   0.467   0.578  0.128
+1            H_logreg   72882       13903  ...   0.524   0.304  0.234
+2  rule_low_elevation   72882       13903  ...   0.545   0.257    NaN
+
+[3 rows x 8 columns]
+
+== Competing models compared with a block bootstrap (gate G6) ==
+             baseline  ...                   verdict
+0  rule_low_elevation  ...  improvement (CI above 0)
+1  rule_low_elevation  ...  improvement (CI above 0)
+2            H_logreg  ...  improvement (CI above 0)
+
+[3 rows x 7 columns]
+
+== Feature importance of the base model ==
+                    Unnamed: 0  importance
+0     num__distance_to_river_m       0.365
+1             num__elevation_m       0.158
+2          num__local_relief_m       0.104
+3               num__slope_deg       0.091
+4        num__segment_length_m       0.088
+5     num__vegetation_fraction       0.081
+6        num__builtup_fraction       0.076
+7  cat__road_class_residential       0.007
+8      cat__road_class_service       0.006
+9      cat__road_class_primary       0.005
+
+===== CELL results-tables =====
+== Gate G4h: label summary ==
+  label_status  segments          km
+0     negative     58979  4932.87205
+1     positive     13903  1192.50393
+2      unknown     10714  1020.04323
+
+== Gate G2/G4h: coverage report ==
+                                                  value
+boundary_area_km2                            695.936805
+boundary_vertices                           1881.000000
+boundary_bbox_fill                             0.451942
+cells_total                               110463.000000
+cells_total_area_km2                        1105.728859
+footprint_area_km2                          1098.014595
+footprint_inside_boundary_km2                567.092954
+boundary_without_cells_km2                   128.843851
+boundary_covered_pct                          81.486271
+footprint_outside_boundary_km2               530.921641
+segments_total                             83596.000000
+road_km_total                               7145.415551
+segments_outside_boundary                      0.000000
+segments_intersecting_footprint            79009.000000
+segments_outside_footprint                  4587.000000
+segments_outside_footprint_pct                 5.487105
+road_km_outside_footprint                    440.738397
+segments_below_min_coverage_but_touching      44.000000
+labels_no_hazard_cells                      4587.000000
+labels_touch_only                              0.000000
+labels_minus_diagnostic                        0.000000
+
+== Held-out static metrics (whole 2 km blocks) ==
+                model  ...  event_false_alarm_rate
+0                H_rf  ...                   0.848
+1            H_logreg  ...                   0.994
+2  rule_low_elevation  ...                   0.567
+
+[3 rows x 15 columns]
+
+== Gate G6: block-bootstrap PR-AUC differences ==
+             baseline  ...                   verdict
+0  rule_low_elevation  ...  improvement (CI above 0)
+1  rule_low_elevation  ...  improvement (CI above 0)
+2            H_logreg  ...  improvement (CI above 0)
+
+[3 rows x 7 columns]
+
+== Feature importance (H_rf) ==
+                      Unnamed: 0  importance
+0       num__distance_to_river_m    0.364701
+1               num__elevation_m    0.157558
+2            num__local_relief_m    0.103624
+3                 num__slope_deg    0.091184
+4          num__segment_length_m    0.087611
+5       num__vegetation_fraction    0.081170
+6          num__builtup_fraction    0.075589
+7    cat__road_class_residential    0.007260
+8        cat__road_class_service    0.006123
+9        cat__road_class_primary    0.005235
+10     cat__road_class_secondary    0.004089
+11                num__is_bridge    0.003294
+12  cat__road_class_unclassified    0.003035
+13         cat__road_class_trunk    0.002566
+14      cat__road_class_tertiary    0.002258
+
+== Susceptibility predictions (step 9) ==
+susceptibility_tier
+High           11803
+Low            52195
+Medium         12485
+Unavailable     7113
+Name: count, dtype: int64
+susceptibility_source
+fastflood_covered               78965
+model_predicted_no_fastflood     4631
+Name: count, dtype: int64
+       susceptibility_probability
+count                   76483.000
+mean                        0.297
+std                         0.250
+min                         0.018
+25%                         0.118
+50%                         0.200
+75%                         0.384
+max                         0.990
+
+== Step timings ==
+Empty DataFrame
+Columns: [step, exit_code, seconds]
+Index: []
+
+ANALYSIS CELLS OK

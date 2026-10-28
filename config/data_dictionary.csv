@@ -1,0 +1,73 @@
+column,family,description,unit,source
+event_id,label,Identifier of the flood event (storm) used for event-based splits,,event_inventory.csv
+observation_id,label,Identifier of one report/observation row in the inventory,,event_inventory.csv
+segment_id,key,Stable road-segment identifier (NRD_000001 ...),,prepare_gis.py
+forecast_issue_time_utc,key,Time the forecast is assumed issued (UTC),UTC,build_labels.py
+target_start_utc,key,Start of the 24 h target window (UTC),UTC,build_labels.py
+target_end_utc,key,End of the 24 h target window (UTC),UTC,build_labels.py
+flood_label,target,1 = documented flooded; 0 = documented not flooded (never unknown),0/1,build_labels.py
+label_status,qa,positive / negative / unknown,,build_labels.py
+unknown_reason,qa,Why an observation became Unknown,,build_labels.py
+label_confidence,qa,Confidence of the evidence (date-only reports capped at low),,event_inventory.csv
+evidence_type,qa,Type of evidence (news / official / image / satellite),,event_inventory.csv
+source_id,qa,Source reference for the label,,event_inventory.csv
+daily_formulation,qa,True when only a date (not a time) was known,,event_inventory.csv
+spatial_precision_m,qa,Stated spatial precision of the report,m,event_inventory.csv
+osm_id,static,OpenStreetMap id of the parent road,,OSM
+road_name,static,Road name where tagged,,OSM
+road_class,static,OSM fclass of the road,,OSM
+segment_length_m,static,Segment length,m,prepare_gis.py
+centroid_x,static,Segment centroid easting in working CRS,m,build_features.py
+centroid_y,static,Segment centroid northing in working CRS,m,build_features.py
+centroid_lon,static,Segment centroid longitude,deg,build_features.py
+centroid_lat,static,Segment centroid latitude,deg,build_features.py
+elevation_m,static,Mean DEM elevation along the segment,m,DEM
+slope_deg,static,Mean slope along the segment,deg,DEM
+local_relief_m,static,Max minus min elevation in the relief window,m,DEM
+lc_frac_10,static,Share of class 10 in the buffer around the segment,fraction,land cover
+lc_frac_20,static,Share of class 20 in the buffer around the segment,fraction,land cover
+lc_frac_30,static,Share of class 30 in the buffer around the segment,fraction,land cover
+lc_frac_40,static,Share of class 40 in the buffer around the segment,fraction,land cover
+lc_frac_50,static,Share of class 50 in the buffer around the segment,fraction,land cover
+lc_frac_60,static,Share of class 60 in the buffer around the segment,fraction,land cover
+lc_frac_70,static,Share of class 70 in the buffer around the segment,fraction,land cover
+lc_frac_80,static,Share of class 80 in the buffer around the segment,fraction,land cover
+lc_frac_90,static,Share of class 90 in the buffer around the segment,fraction,land cover
+lc_frac_95,static,Share of class 95 in the buffer around the segment,fraction,land cover
+lc_frac_100,static,Share of class 100 in the buffer around the segment,fraction,land cover
+builtup_fraction,static,Built-up share in the buffer (verify legend),fraction,land cover
+vegetation_fraction,static,Vegetation share in the buffer (verify legend),fraction,land cover
+water_fraction,static,Water and wetland share in the buffer (verify legend),fraction,land cover
+other_fraction,static,Remaining share in the buffer,fraction,land cover
+distance_to_river_m,static,Distance to nearest mapped river/stream/canal/drain,m,OSM waterways
+is_bridge,static,1 if tagged bridge; NaN if the tag is unavailable,0/1,OSM
+is_tunnel,static,1 if tagged tunnel; NaN if the tag is unavailable,0/1,OSM
+surface,static,Surface tag where present,,OSM
+weather_location_id,weather,Open-Meteo grid point assigned to the segment,,build_features.py
+weather_distance_m,weather,Distance from segment centroid to its weather point,m,build_features.py
+n_hours_24h,weather,Hours of precipitation available in the 24 h window,hours,Open-Meteo
+rain_fcst_next_24h_mm,forecast,Forecast precipitation total over the next 24 h,mm,Open-Meteo
+max_hourly_precip_mm,forecast,Maximum hourly forecast precipitation in the window,mm/h,Open-Meteo
+wet_hours_count,forecast,Hours with precipitation at or above the wet-hour threshold,hours,Open-Meteo
+n_hours_6h,weather,Hours of precipitation available in the 6 h window,hours,Open-Meteo
+rain_fcst_next_6h_mm,forecast,Forecast precipitation total over the next 6 h,mm,Open-Meteo
+n_hours_ante,weather,Hours of antecedent forecast data available,hours,Open-Meteo
+antecedent_fcst_prev_24h_mm,forecast,Forecast-based precipitation over the 24 h before issue time (not observed),mm,Open-Meteo
+precipitation_probability_max,forecast,Maximum forecast precipitation probability in the window,percent,Open-Meteo
+data_quality_flag,qa,OK / INCOMPLETE_WEATHER / NO_WEATHER,,build_features.py
+max_issue_time_used_utc,qa,Newest forecast issue time used (must be <= issue time),UTC,build_features.py
+hazard_label,target,1 = segment lies in hazard cells; 0 = in mapped cells with no hazard (primary static label),0/1,build_hazard_labels.py
+n_cells,qa,Number of hazard cells overlapping the segment,count,build_hazard_labels.py
+covered_length_m,qa,Segment length inside mapped hazard cells,m,build_hazard_labels.py
+pos_length_m,qa,Segment length inside positive hazard cells,m,build_hazard_labels.py
+covered_fraction,qa,Share of segment length covered by mapped cells,fraction,build_hazard_labels.py
+hazard_pos_fraction,qa,Share of covered length that is positive,fraction,build_hazard_labels.py
+mean_hazard_value,qa,Length-weighted mean flood_hazard value of overlapping cells,,build_hazard_labels.py
+spatial_block,qa,Spatial block id used for leave-block-out validation,,build_hazard_labels.py
+susceptibility_probability,output,Static susceptibility score from an H_* model (uncalibrated),0-1,predict.py
+rain_above_threshold,output,True when forecast 24 h rain >= rule threshold (context only; does not change susceptibility),bool,predict.py
+susceptibility_tier,output,Low / Medium / High tier from susceptibility_probability (illustrative thresholds; not validated),,predict.py
+max_hazard_value,static,Highest modelled FastFlood hazard category among cells overlapping the segment (NaN if uncovered),category,FastFlood output
+fastflood_max_hazard,output,max_hazard_value shown beside predictions,category,predict.py
+fastflood_hazard_share,output,Share of covered segment length in hazard cells (direct FastFlood exposure),fraction,predict.py
+hazard_high_fraction,static,Share of covered segment length in deep-hazard cells (flood_hazard >= high_threshold; depth above 100 cm),fraction,FastFlood output

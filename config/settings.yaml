@@ -1,0 +1,204 @@
+# Central configuration for the Nairobi road flood prediction project.
+# All paths are relative to the project root (the folder that contains config/ and src/).
+
+project:
+  name: nairobi_flood_project
+  display_timezone: Africa/Nairobi      # EAT, UTC+3, used for user-facing outputs
+  working_crs: EPSG:32737               # WGS 84 / UTM zone 37S (metres) - suits Nairobi
+  geographic_crs: EPSG:4326
+  random_seed: 42
+  expected_county_area_km2: 696         # approximate official Nairobi County area - verify; used only for a boundary check
+
+paths:
+  raw_openmeteo: data/raw/openmeteo_json
+  interim: data/interim
+  processed: data/processed
+  models: models
+  outputs: outputs
+  logs: logs
+  study_area: config/study_area.geojson
+  grid_points: config/grid_points.gpkg
+  data_dictionary: config/data_dictionary.csv
+
+inputs:
+  # Nairobi County boundary. If you only have the OSM admin-areas layer, point to it and
+  # fill in boundary_name_field / boundary_name_value so the right polygon is selected.
+  boundary_file: data/raw/osm_shapefiles/roads/gis_osm_adminareas_a_free_1.shp
+  boundary_layer: null                  # layer name inside a .gpkg, or null for the default
+  boundary_name_field: name             # e.g. name
+  boundary_name_value: Nairobi          # admin_level4 polygon = the real county (696 km2, 1881 vertices).
+                                        # data/raw/boundary/NairobiEntire.geojson is a 1489 km2 RECTANGLE -
+                                        # gate G2/Boundary check rejects it; keep it only for comparison.
+  roads_shapefile: data/raw/osm_shapefiles/roads/gis_osm_roads_free_1.shp   # LINE layer, not admin/buildings/landuse
+  rivers_shapefile: data/raw/osm_shapefiles/roads/gis_osm_waterways_free_1.shp   # optional (distance to rivers)
+  dem: data/raw/dem/S02E036.tif         # SRTM 1 arc-second tile S02E036 (EPSG:4326, nodata -32768)
+  landcover: data/raw/landcover/LCFM_LCM-10_V100_2020_S03E036_MAP.tif   # LCFM LCM-10 10 m, 2020
+  event_inventory: data/interim/event_inventory.csv      # OPTIONAL: time-stamped events (secondary source)
+  hazard_dataset: data/raw/flood_hazard/flood_hazard.csv   # PRIMARY label source (.csv, .tsv or .parquet)
+
+roads:
+  # Geofabrik "fclass" values to keep. Decide explicitly about footpaths/tracks/service roads.
+  keep_fclass:
+    - motorway
+    - motorway_link
+    - trunk
+    - trunk_link
+    - primary
+    - primary_link
+    - secondary
+    - secondary_link
+    - tertiary
+    - tertiary_link
+    - unclassified
+    - residential
+    - living_street
+    - service
+  segment_length_m: 100                 # target segment length (100-250 m recommended); 100 m used for this study
+  min_segment_length_m: 10              # segments shorter than this are dropped
+
+dem:
+  resolution_m: 30                      # grid used for the working DEM (clip + warp)
+  nodata: -9999
+  relief_window_m: 150                  # window for local relief (max - min elevation)
+  margin_m: 500                         # margin kept around the boundary when clipping
+
+landcover:
+  product: LCFM LCM-10 (VITO, Copernicus Sentinel-1/2)   # record the real product name and year
+  year: 2020
+  resolution_m: 10
+  nodata: 255                          # file nodata; 254 = unclassifiable
+  buffer_m: 50                          # buffer radius around each segment for class fractions
+  # Legend read from the raster metadata (legend tag) and verified against sample points:
+  # Nairobi CBD = 90 (built-up), Karura Forest = 10 (tree cover), Lake Naivasha = 100 (water).
+  class_names:
+    10: tree_cover
+    20: shrubland
+    30: grassland
+    40: cropland
+    50: herbaceous_wetland
+    60: mangroves
+    70: moss_lichen
+    80: bare_sparse
+    90: built_up
+    100: water
+    110: snow_ice
+    254: unclassifiable
+  builtup_codes: [90]
+  vegetation_codes: [10, 20, 30, 40]
+  water_codes: [100]
+
+rivers:
+  keep_fclass: [river, stream, canal, drain]
+
+openmeteo:
+  forecast_url: https://api.open-meteo.com/v1/forecast
+  historical_forecast_url: https://historical-forecast-api.open-meteo.com/v1/forecast
+  previous_runs_url: https://previous-runs-api.open-meteo.com/v1/forecast
+  model: null                           # null = Open-Meteo "best match"; or a single model name
+  hourly:
+    - precipitation
+    - rain
+    - showers
+    - precipitation_probability
+    - relative_humidity_2m
+    - temperature_2m
+  core_hourly:                          # fallback list if the full list is rejected
+    - precipitation
+    - rain
+    - showers
+  previous_days: [1]                    # previous-runs mode: forecasts made N days earlier
+  grid_spacing_km: 5
+  batch_size: 10                        # coordinates per API request
+  forecast_days: 3
+  past_days: 1
+  sleep_seconds: 1.0                    # pause between requests (be polite to the free API)
+  max_retries: 4
+  timeout_seconds: 60
+
+forecast_features:
+  window_hours: 24
+  short_window_hours: 6
+  wet_hour_threshold_mm: 0.1
+  min_hour_coverage: 0.9                # require at least this fraction of hours to be present
+  antecedent_hours: 24
+
+hazard:
+  # Primary label source: SPACE4ALL FastFlood OUTPUT (one CSV per city; use the Nairobi file). One row per
+  # 100 x 100 m cell; flood_hazard = modelled hazard category in terms of flood depth (check the repository
+  # metadata for the category legend and set positive_threshold accordingly). Limits: modelled not observed;
+  # no drainage infrastructure; steady-state; no calibration; selected rainfall events only; NO date/time.
+  # It trains a STATIC susceptibility model (an emulator of FastFlood) and gives exposure features that can be
+  # tested against observed events; it cannot validate 24-hour forecasts by itself.
+  columns:                              # map your column names here if they differ
+    latitude: latitude
+    longitude: longitude
+    lat_min: lat_min
+    lat_max: lat_max
+    lon_min: lon_min
+    lon_max: lon_max
+    value: flood_hazard
+  levels:                               # legend from the SPACE4ALL metadata (modelled flood depth)
+    0: low depth (< 10 cm)
+    1: medium depth (up to 100 cm)
+    2: high depth (> 100 cm)
+  positive_threshold: 1                 # flood_hazard >= 1 (depth >= 10 cm) = hazard cell; use 2 for deep flooding only
+  high_threshold: 2                     # level counted in hazard_high_fraction (depth > 100 cm)
+  treat_zero_as_negative: true          # 0 = modelled depth < 10 cm, i.e. a MODELLED negative (not observed dry)
+  fallback_half_size_m: 50              # square half-width used when bbox columns are missing
+  positive_fraction_min: 0.5            # segment is positive if >= this share of covered length is positive
+  mixed_policy: exclude                 # segments with 0 < share < min: exclude | positive | negative
+  min_coverage: 0.5                     # share of segment length that must lie inside mapped cells
+  min_overlap_m: 0.5                    # a segment/cell overlap shorter than this does not count as coverage
+  min_positive_segments: 30             # gate G4h warning thresholds
+  min_negative_segments: 30
+  min_positive_blocks: 5
+  block_size_m: 2000                    # spatial blocks for leave-block-out validation
+
+labels:
+  timezone: Africa/Nairobi
+  match_radius_m: 50                    # distance used to link a report to road segments
+  max_spatial_precision_m: 100          # reports less precise than this become Unknown
+  issue_lead_hours: 6                   # forecast issue time = event start minus this many hours
+  accepted_confidence: [high, medium]   # confidence levels accepted for labels
+  require_reviewed: true
+  min_events_for_modelling: 5           # gate G4 warning threshold
+
+training:
+  n_splits: 5
+  use_hazard_features_in_event_models: true   # adds FastFlood exposure to the optional dated-event models (*_haz)
+  hazard_features: [max_hazard_value, mean_hazard_value, hazard_pos_fraction, hazard_high_fraction]
+  decision_threshold: 0.5
+  rule_threshold_mm_24h: 20.0           # transparent baseline: flag if next-24h rain >= this
+  model_version_prefix: v0.1.0
+  static_features:
+    - elevation_m
+    - slope_deg
+    - local_relief_m
+    - builtup_fraction
+    - vegetation_fraction
+    - water_fraction
+    - distance_to_river_m
+    - segment_length_m
+    - is_bridge
+    - is_tunnel
+  categorical_features:
+    - road_class
+  forecast_features:
+    - rain_fcst_next_6h_mm
+    - rain_fcst_next_24h_mm
+    - max_hourly_precip_mm
+    - wet_hours_count
+    - precipitation_probability_max
+    - antecedent_fcst_prev_24h_mm
+
+evaluation:
+  bootstrap_replicates: 1000
+  calibration_bins: 5
+
+prediction:
+  default_model: H_rf                   # H_* = trained on the hazard dataset (static susceptibility)
+  validated: false                      # keep false until thresholds/calibration are reviewed
+  risk_tiers:                           # illustrative susceptibility tier thresholds, NOT validated
+    Low: 0.0
+    Medium: 0.3
+    High: 0.6

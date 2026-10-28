@@ -1,0 +1,246 @@
+2026-10-26 14:49:29,528 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:49:29,529 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:49:29,529 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:49:29,706 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                     0.7569
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                     1.0000
+2026-10-26 14:49:29,706 | WARNING | dem covers only 75.7% of the boundary (gate G2).
+2026-10-26 14:49:29,707 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 14:49:31,732 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:49:31,733 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:49:31,733 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:49:31,805 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                     0.7569
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                     1.0000
+2026-10-26 14:49:31,806 | WARNING | dem covers only 75.7% of the boundary (gate G2).
+2026-10-26 14:49:31,806 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 14:49:31,816 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:49:31,817 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:49:31,817 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:49:51,530 | INFO | Roads read: 739195 features, geometry types ['LineString']
+2026-10-26 14:50:02,935 | INFO | fclass filter kept 481190 of 739195 features
+2026-10-26 14:50:02,995 | INFO | fclass counts kept:
+fclass
+residential       279709
+unclassified      132411
+service            51223
+tertiary            7127
+secondary           3883
+trunk               3702
+primary             1270
+trunk_link           712
+living_street        427
+secondary_link       298
+primary_link         182
+tertiary_link        109
+motorway_link         70
+motorway              67
+2026-10-26 14:50:08,031 | INFO | Dropped 0 duplicate road records; 71134 lines remain
+2026-10-26 14:50:31,526 | INFO | Built 139250 segments (target 100 m); length quantiles (m): {0.0: 10.0, 0.05: 30.1, 0.5: 97.4, 0.95: 120.6, 1.0: 150.0}
+2026-10-26 14:50:36,656 | INFO | Wrote dem_clip.tif (1677 x 1044, 75.1% valid)
+2026-10-26 14:50:38,686 | INFO | Wrote landcover_clip.tif (5027 x 3130, 100.0% valid)
+2026-10-26 14:50:38,688 | INFO | prepare_gis complete.
+2026-10-26 14:51:09,667 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:51:09,667 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:51:09,667 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:51:09,719 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                     0.7569
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                     1.0000
+2026-10-26 14:51:09,719 | WARNING | dem covers only 75.7% of the boundary (gate G2).
+2026-10-26 14:51:09,720 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 14:51:11,542 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:51:11,542 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:51:11,542 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:51:11,592 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                     0.7569
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                     1.0000
+2026-10-26 14:51:11,592 | WARNING | dem covers only 75.7% of the boundary (gate G2).
+2026-10-26 14:51:11,592 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 14:51:11,600 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:51:11,601 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:51:11,601 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:51:33,316 | INFO | Roads read: 739195 features, geometry types ['LineString']
+2026-10-26 14:51:45,015 | INFO | fclass filter kept 481190 of 739195 features
+2026-10-26 14:51:45,055 | INFO | fclass counts kept:
+fclass
+residential       279709
+unclassified      132411
+service            51223
+tertiary            7127
+secondary           3883
+trunk               3702
+primary             1270
+trunk_link           712
+living_street        427
+secondary_link       298
+primary_link         182
+tertiary_link        109
+motorway_link         70
+motorway              67
+2026-10-26 14:51:49,524 | INFO | Dropped 0 duplicate road records; 71134 lines remain
+2026-10-26 14:52:10,328 | INFO | Built 139250 segments (target 100 m); length quantiles (m): {0.0: 10.0, 0.05: 30.1, 0.5: 97.4, 0.95: 120.6, 1.0: 150.0}
+2026-10-26 14:52:16,502 | INFO | Wrote dem_clip.tif (1677 x 1044, 75.1% valid)
+2026-10-26 14:52:18,347 | INFO | Wrote landcover_clip.tif (5027 x 3130, 100.0% valid)
+2026-10-26 14:52:18,350 | INFO | prepare_gis complete.
+2026-10-26 14:59:08,327 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:59:08,327 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:59:08,327 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:59:08,484 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                     0.7569
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                     1.0000
+2026-10-26 14:59:08,484 | WARNING | dem covers only 75.7% of the boundary (gate G2).
+2026-10-26 14:59:08,485 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 14:59:10,278 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:59:10,278 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:59:10,278 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:59:10,328 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                     0.7569
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                     1.0000
+2026-10-26 14:59:10,329 | WARNING | dem covers only 75.7% of the boundary (gate G2).
+2026-10-26 14:59:10,329 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 14:59:10,339 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:59:10,339 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:59:10,339 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:59:29,670 | INFO | Roads read: 739195 features, geometry types ['LineString']
+2026-10-26 14:59:39,099 | INFO | fclass filter kept 481190 of 739195 features
+2026-10-26 14:59:39,125 | INFO | fclass counts kept:
+fclass
+residential       279709
+unclassified      132411
+service            51223
+tertiary            7127
+secondary           3883
+trunk               3702
+primary             1270
+trunk_link           712
+living_street        427
+secondary_link       298
+primary_link         182
+tertiary_link        109
+motorway_link         70
+motorway              67
+2026-10-26 14:59:42,772 | INFO | Dropped 0 duplicate road records; 71134 lines remain
+2026-10-26 15:00:00,472 | INFO | Built 139250 segments (target 100 m); length quantiles (m): {0.0: 10.0, 0.05: 30.1, 0.5: 97.4, 0.95: 120.6, 1.0: 150.0}
+2026-10-26 15:00:06,441 | INFO | Wrote dem_clip.tif (1677 x 1044, 75.1% valid)
+2026-10-26 15:00:08,070 | INFO | Wrote landcover_clip.tif (5027 x 3130, 100.0% valid)
+2026-10-26 15:00:08,073 | INFO | prepare_gis complete.
+2026-10-26 15:05:27,805 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-26 15:05:27,864 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                       0.88
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                       1.00
+2026-10-26 15:05:27,864 | WARNING | dem covers only 88.0% of the boundary (gate G2).
+2026-10-26 15:05:27,865 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 15:05:29,942 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-26 15:05:29,998 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                       0.88
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                       1.00
+2026-10-26 15:05:29,999 | WARNING | dem covers only 88.0% of the boundary (gate G2).
+2026-10-26 15:05:29,999 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-26 15:05:30,227 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-26 15:05:49,328 | INFO | Roads read: 739195 features, geometry types ['LineString']
+2026-10-26 15:05:59,138 | INFO | fclass filter kept 481190 of 739195 features
+2026-10-26 15:05:59,164 | INFO | fclass counts kept:
+fclass
+residential       279709
+unclassified      132411
+service            51223
+tertiary            7127
+secondary           3883
+trunk               3702
+primary             1270
+trunk_link           712
+living_street        427
+secondary_link       298
+primary_link         182
+tertiary_link        109
+motorway_link         70
+motorway              67
+2026-10-26 15:06:18,397 | INFO | Dropped 0 duplicate road records; 47904 lines remain
+2026-10-26 15:06:26,826 | INFO | Built 83596 segments (target 100 m); length quantiles (m): {0.0: 10.0, 0.05: 25.2, 0.5: 95.7, 0.95: 120.8, 1.0: 150.0}
+2026-10-26 15:06:29,479 | INFO | Wrote dem_clip.tif (1668 x 1082, 75.7% valid)
+2026-10-26 15:06:30,948 | INFO | Wrote landcover_clip.tif (5001 x 3244, 100.0% valid)
+2026-10-26 15:06:30,950 | INFO | prepare_gis complete.
+2026-10-28 13:34:31,076 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 13:34:31,384 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                       0.88
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                       1.00
+2026-10-28 13:34:31,385 | WARNING | dem covers only 88.0% of the boundary (gate G2).
+2026-10-28 13:34:31,387 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-28 13:34:34,060 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 13:34:34,134 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                       0.88
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                       1.00
+2026-10-28 13:34:34,134 | WARNING | dem covers only 88.0% of the boundary (gate G2).
+2026-10-28 13:34:34,135 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-28 13:34:34,447 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 13:34:58,956 | INFO | Roads read: 739195 features, geometry types ['LineString']
+2026-10-28 13:35:11,932 | INFO | fclass filter kept 481190 of 739195 features
+2026-10-28 13:35:11,988 | INFO | fclass counts kept:
+fclass
+residential       279709
+unclassified      132411
+service            51223
+tertiary            7127
+secondary           3883
+trunk               3702
+primary             1270
+trunk_link           712
+living_street        427
+secondary_link       298
+primary_link         182
+tertiary_link        109
+motorway_link         70
+motorway              67
+2026-10-28 13:35:34,856 | INFO | Dropped 0 duplicate road records; 47904 lines remain
+2026-10-28 13:35:49,376 | INFO | Built 83596 segments (target 100 m); length quantiles (m): {0.0: 10.0, 0.05: 25.2, 0.5: 95.7, 0.95: 120.8, 1.0: 150.0}
+2026-10-28 13:35:53,469 | INFO | Wrote dem_clip.tif (1668 x 1082, 75.7% valid)
+2026-10-28 13:35:55,297 | INFO | Wrote landcover_clip.tif (5001 x 3244, 100.0% valid)
+2026-10-28 13:35:55,299 | INFO | prepare_gis complete.
+2026-10-28 17:30:56,074 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 17:30:57,105 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                       0.88
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                       1.00
+2026-10-28 17:30:57,106 | WARNING | dem covers only 88.0% of the boundary (gate G2).
+2026-10-28 17:30:57,108 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-28 17:31:02,201 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 17:31:02,277 | INFO | Asset inventory:
+       asset                                                                    path        crs  width  height   pixel_x   pixel_y                                    bounds  dtype   nodata units  boundary_fraction_covered
+0        dem                                  D:\floodguard\data\raw\dem\S02E036.tif  EPSG:4326   3601    3601  0.000278  0.000278  (35.99986, -2.00014, 37.00014, -0.99986)  int16 -32768.0  None                       0.88
+1  landcover  D:\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif  EPSG:4326  36000   36000  0.000083  0.000083                   (36.0, -3.0, 39.0, 0.0)  uint8    255.0  None                       1.00
+2026-10-28 17:31:02,278 | WARNING | dem covers only 88.0% of the boundary (gate G2).
+2026-10-28 17:31:02,279 | INFO | Roads sidecars (.shx, .dbf, .prj) present: [True, True, True]
+2026-10-28 17:31:02,620 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 17:31:36,125 | INFO | Roads read: 739195 features, geometry types ['LineString']
+2026-10-28 17:31:48,260 | INFO | fclass filter kept 481190 of 739195 features
+2026-10-28 17:31:48,301 | INFO | fclass counts kept:
+fclass
+residential       279709
+unclassified      132411
+service            51223
+tertiary            7127
+secondary           3883
+trunk               3702
+primary             1270
+trunk_link           712
+living_street        427
+secondary_link       298
+primary_link         182
+tertiary_link        109
+motorway_link         70
+motorway              67
+2026-10-28 17:32:08,849 | INFO | Dropped 0 duplicate road records; 47904 lines remain
+2026-10-28 17:32:21,344 | INFO | Built 83596 segments (target 100 m); length quantiles (m): {0.0: 10.0, 0.05: 25.2, 0.5: 95.7, 0.95: 120.8, 1.0: 150.0}
+2026-10-28 17:32:26,775 | INFO | Wrote dem_clip.tif (1668 x 1082, 75.7% valid)
+2026-10-28 17:32:28,630 | INFO | Wrote landcover_clip.tif (5001 x 3244, 100.0% valid)
+2026-10-28 17:32:28,632 | INFO | prepare_gis complete.

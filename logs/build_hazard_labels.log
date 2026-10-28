@@ -1,0 +1,326 @@
+2026-10-25 14:02:14,792 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 14:02:14,817 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 14:02:14,818 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 14:02:14,818 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 14:02:14,819 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 14:02:14,819 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 16:05:39,303 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 16:05:39,321 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 16:05:39,322 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 16:05:39,322 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 16:05:39,322 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 16:05:39,323 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 16:06:36,788 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 16:06:36,832 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 16:06:36,832 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 16:06:36,833 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 16:06:36,833 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 16:06:36,833 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 16:06:41,102 | INFO | 0 of 110463 cells intersect the study area; 110463 are outside and ignored.
+2026-10-25 17:57:19,865 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 17:57:19,902 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 17:57:19,903 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 17:57:19,903 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 17:57:19,904 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 17:57:19,904 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 17:57:24,205 | INFO | Cells: 110463
+2026-10-25 17:57:25,479 | INFO | 0 of 110463 cells intersect the study area; 110463 are outside and ignored.
+2026-10-25 18:02:20,070 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 18:02:20,088 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 18:02:20,089 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 18:02:20,089 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 18:02:20,090 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 18:02:20,090 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 18:02:24,863 | INFO | Cells: 110463
+2026-10-25 18:11:00,761 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 18:11:00,808 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 18:11:00,809 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 18:11:00,809 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 18:11:00,809 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 18:11:00,809 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 18:11:05,390 | INFO | Cells: 110463
+2026-10-25 18:11:37,187 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 18:11:37,199 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 18:11:37,199 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 18:11:37,200 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 18:11:37,200 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 18:11:37,201 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 18:11:41,556 | INFO | Cells: 110463
+2026-10-25 18:11:41,718 | INFO | 0 of 110463 cells intersect the study area; 110463 are outside and ignored.
+2026-10-25 18:11:41,722 | INFO | Cells CRS: EPSG:32737
+2026-10-25 18:11:41,723 | INFO | Boundary CRS: EPSG:4326
+2026-10-25 18:13:09,793 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 18:13:09,811 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 18:13:09,812 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 18:13:09,812 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 18:13:09,813 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 18:13:09,813 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 18:13:14,243 | INFO | Cells: 110463
+2026-10-25 18:13:14,660 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-25 18:13:14,671 | INFO | Cells CRS: EPSG:32737
+2026-10-25 18:13:14,672 | INFO | Boundary CRS: EPSG:32737
+2026-10-25 18:13:23,445 | INFO | Cell area (m2): median 10010, min 10003, max 10020. Cells overlapping each other: yes (shares are length-weighted, so overlaps are tolerated)
+2026-10-25 18:13:23,447 | INFO | Positive cells: 21626 (23.7%)
+2026-10-25 19:26:32,256 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 19:26:32,284 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 19:26:32,285 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 19:26:32,285 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 19:26:32,285 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 19:26:32,286 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 19:26:36,960 | INFO | Cells: 110463
+2026-10-25 19:26:37,470 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-25 19:26:37,485 | INFO | Cells CRS: EPSG:32737
+2026-10-25 19:26:37,486 | INFO | Boundary CRS: EPSG:32737
+2026-10-25 19:26:47,012 | INFO | Cell area (m2): median 10010, min 10003, max 10020. Cells overlapping each other: yes (shares are length-weighted, so overlaps are tolerated)
+2026-10-25 19:26:47,014 | INFO | Positive cells: 21626 (23.7%)
+2026-10-25 20:09:07,538 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 20:09:07,568 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 20:09:07,570 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 20:09:07,572 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 20:09:07,572 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 20:09:07,572 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 20:09:12,065 | INFO | Cells: 110463
+2026-10-25 20:09:12,482 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-25 20:09:12,492 | INFO | Cells CRS: EPSG:32737
+2026-10-25 20:09:12,493 | INFO | Boundary CRS: EPSG:32737
+2026-10-25 20:09:21,851 | INFO | Cell area (m2): median 10010, min 10003, max 10020. Cells overlapping each other: yes (shares are length-weighted, so overlaps are tolerated)
+2026-10-25 20:09:21,852 | INFO | Positive cells: 21626 (23.7%)
+2026-10-25 20:19:08,621 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-25 20:19:08,637 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-25 20:19:08,638 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-25 20:19:08,638 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-25 20:19:08,638 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-25 20:19:08,639 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-25 20:19:15,060 | INFO | Cells: 110463
+2026-10-25 20:19:15,766 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-25 20:19:15,786 | INFO | Cells CRS: EPSG:32737
+2026-10-25 20:19:15,786 | INFO | Boundary CRS: EPSG:32737
+2026-10-25 20:19:25,811 | INFO | Cell area (m2): median 10010, min 10003, max 10020. Cells overlapping each other: yes (shares are length-weighted, so overlaps are tolerated)
+2026-10-25 20:19:25,813 | INFO | Positive cells: 21626 (23.7%)
+2026-10-26 08:54:28,980 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 08:54:29,009 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 08:54:29,010 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 08:54:29,010 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 08:54:29,010 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 08:54:29,011 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 08:54:33,218 | INFO | Cells: 110463
+2026-10-26 08:54:33,671 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-26 08:54:33,685 | INFO | Cells CRS: EPSG:32737
+2026-10-26 08:54:33,685 | INFO | Boundary CRS: EPSG:32737
+2026-10-26 08:54:42,736 | INFO | Cell area (m2): median 10010, min 10003, max 10020. Cells overlapping each other: yes (shares are length-weighted, so overlaps are tolerated)
+2026-10-26 08:54:42,738 | INFO | Positive cells: 21626 (23.7%)
+2026-10-26 08:57:39,883 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 08:57:39,910 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 08:57:39,911 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 08:57:39,911 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 08:57:39,911 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 08:57:39,912 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 08:57:44,616 | INFO | Cells: 110463
+2026-10-26 08:57:45,111 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-26 08:57:45,197 | INFO | Cells CRS: EPSG:32737
+2026-10-26 08:57:45,198 | INFO | Boundary CRS: EPSG:32737
+2026-10-26 08:57:55,239 | INFO | Cell area (m2): median 10010, min 10003, max 10020. Cells overlapping each other: yes (shares are length-weighted, so overlaps are tolerated)
+2026-10-26 08:57:55,240 | INFO | Positive cells: 21626 (23.7%)
+2026-10-26 08:59:48,742 | INFO | Segment label summary:
+label_status  segments     km
+    negative    108174 8069.1
+    positive     24306 1826.1
+     unknown     39088 3346.2
+2026-10-26 08:59:48,754 | INFO | Unknown reasons:
+unknown_reason
+no_hazard_cells          29252
+mixed_cells               9597
+insufficient_coverage      239
+2026-10-26 08:59:48,774 | INFO | Prevalence among labelled segments: 18.3%
+2026-10-26 08:59:48,774 | INFO | These labels are MODELLED (FastFlood) static hazard labels with no timestamps; they cannot validate 24 h forecasts and are not proof that roads flooded. Test them against observed events when you have them.
+2026-10-26 14:51:46,090 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 14:51:46,108 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 14:51:46,109 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 14:51:46,109 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 14:51:46,109 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 14:51:46,109 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 14:51:52,449 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-26 14:51:52,492 | INFO | Cell area (m2): median 10010, min 10003, max 10020; total 914.2 km2
+2026-10-26 14:52:22,049 | INFO | Cell overlap: 362847 touching pairs, 90883 overlap by more than 1 m2; overlapping area 6449239.2 m2 (0.70543% of all cell area).
+2026-10-26 14:52:22,050 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-26 14:52:22,051 | INFO | Positive cells: 21626 (23.7%)
+2026-10-26 14:53:23,511 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 14:53:23,526 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 14:53:23,527 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 14:53:23,527 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 14:53:23,527 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 14:53:23,527 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 14:53:29,166 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-26 14:53:29,193 | INFO | Cell area (m2): median 10010, min 10003, max 10020; total 914.2 km2
+2026-10-26 14:54:01,233 | INFO | 'mixed_cells' = covered segments with 0 < hazard share < 0.50 (8710). They are mostly low-hazard with a minority of hazard cells, not conflicting data. Options: mixed_policy negative/positive, or model susceptibility_score directly.
+2026-10-26 14:54:02,438 | INFO | Segment label summary:
+label_status  segments     km
+    negative     87759 7578.9
+    positive     18110 1582.4
+     unknown     33381 3221.1
+2026-10-26 14:54:02,451 | INFO | Unknown reasons:
+unknown_reason
+no_hazard_cells          24460
+mixed_cells               8710
+insufficient_coverage      211
+2026-10-26 14:54:02,466 | INFO | Prevalence among labelled segments: 17.1%
+2026-10-26 14:54:02,467 | INFO | These labels are MODELLED (FastFlood) static hazard labels with no timestamps; they cannot validate 24 h forecasts and are not proof that roads flooded. Test them against observed events when you have them.
+2026-10-26 15:01:04,489 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 15:01:04,503 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 15:01:04,504 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 15:01:04,504 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 15:01:04,504 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 15:01:04,504 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 15:01:09,210 | INFO | 91326 of 110463 cells intersect the study area; 19137 are outside and ignored.
+2026-10-26 15:01:09,240 | INFO | Cell area (m2): median 10010, min 10003, max 10020; total 914.2 km2
+2026-10-26 15:01:32,322 | INFO | Cell overlap: 362847 touching pairs, 90883 overlap by more than 1 m2; overlapping area 6449239.2 m2 (0.70543% of all cell area).
+2026-10-26 15:01:32,322 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-26 15:01:32,323 | INFO | Positive cells: 21626 (23.7%)
+2026-10-26 15:07:13,211 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 15:07:13,227 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 15:07:13,227 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 15:07:13,227 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 15:07:13,227 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 15:07:13,227 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 15:07:20,751 | INFO | 57813 of 110463 cells intersect the study area; 52650 are outside and ignored.
+2026-10-26 15:07:20,787 | INFO | Cell area (m2): median 10011, min 10003, max 10018; total 578.8 km2
+2026-10-26 15:07:32,671 | INFO | Cell overlap: 228995 touching pairs, 57354 overlap by more than 1 m2; overlapping area 4113153.2 m2 (0.71067% of all cell area).
+2026-10-26 15:07:32,672 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-26 15:07:32,672 | INFO | Positive cells: 14316 (24.8%)
+2026-10-26 15:08:27,289 | INFO | 'mixed_cells' = covered segments with 0 < hazard share < 0.50 (6083). They are mostly low-hazard with a minority of hazard cells, not conflicting data. Options: mixed_policy negative/positive, or model susceptibility_score directly.
+2026-10-26 15:08:27,926 | INFO | Segment label summary:
+label_status  segments     km
+    negative     58979 4932.9
+    positive     13903 1192.5
+     unknown     10714 1020.0
+2026-10-26 15:08:27,931 | INFO | Unknown reasons:
+unknown_reason
+mixed_cells              6083
+no_hazard_cells          4587
+insufficient_coverage      44
+2026-10-26 15:08:27,939 | INFO | Prevalence among labelled segments: 19.1%
+2026-10-26 15:08:27,939 | INFO | These labels are MODELLED (FastFlood) static hazard labels with no timestamps; they cannot validate 24 h forecasts and are not proof that roads flooded. Test them against observed events when you have them.
+2026-10-28 13:38:04,872 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-28 13:38:04,921 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-28 13:38:04,921 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-28 13:38:04,921 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-28 13:38:04,921 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-28 13:38:04,921 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-28 13:38:15,054 | INFO | 57813 of 110463 cells intersect the study area; 52650 are outside and ignored.
+2026-10-28 13:38:15,083 | INFO | Cell area (m2): median 10011, min 10003, max 10018; total 578.8 km2
+2026-10-28 13:38:31,075 | INFO | Cell overlap: 228995 touching pairs, 57354 overlap by more than 1 m2; overlapping area 4113153.2 m2 (0.71067% of all cell area).
+2026-10-28 13:38:31,076 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-28 13:38:31,077 | INFO | Positive cells: 14316 (24.8%)
+2026-10-28 13:39:55,624 | INFO | 'mixed_cells' = covered segments with 0 < hazard share < 0.50 (6083). They are mostly low-hazard with a minority of hazard cells, not conflicting data. Options: mixed_policy negative/positive, or model susceptibility_score directly.
+2026-10-28 13:39:56,737 | INFO | Segment label summary:
+label_status  segments     km
+    negative     58979 4932.9
+    positive     13903 1192.5
+     unknown     10714 1020.0
+2026-10-28 13:39:56,748 | INFO | Unknown reasons:
+unknown_reason
+mixed_cells              6083
+no_hazard_cells          4587
+insufficient_coverage      44
+2026-10-28 13:39:56,762 | INFO | Prevalence among labelled segments: 19.1%
+2026-10-28 13:39:56,762 | INFO | These labels are MODELLED (FastFlood) static hazard labels with no timestamps; they cannot validate 24 h forecasts and are not proof that roads flooded. Test them against observed events when you have them.
+2026-10-28 17:34:51,138 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-28 17:34:51,166 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-28 17:34:51,166 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-28 17:34:51,167 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-28 17:34:51,167 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-28 17:34:51,167 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-28 17:35:05,220 | INFO | 57813 of 110463 cells intersect the study area; 52650 are outside and ignored.
+2026-10-28 17:35:05,255 | INFO | Cell area (m2): median 10011, min 10003, max 10018; total 578.8 km2
+2026-10-28 17:35:26,358 | INFO | Cell overlap: 228995 touching pairs, 57354 overlap by more than 1 m2; overlapping area 4113153.2 m2 (0.71067% of all cell area).
+2026-10-28 17:35:26,359 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-28 17:35:26,360 | INFO | Positive cells: 14316 (24.8%)
+2026-10-28 17:36:59,844 | INFO | 'mixed_cells' = covered segments with 0 < hazard share < 0.50 (6083). They are mostly low-hazard with a minority of hazard cells, not conflicting data. Options: mixed_policy negative/positive, or model susceptibility_score directly.
+2026-10-28 17:37:00,995 | INFO | Segment label summary:
+label_status  segments     km
+    negative     58979 4932.9
+    positive     13903 1192.5
+     unknown     10714 1020.0
+2026-10-28 17:37:01,011 | INFO | Unknown reasons:
+unknown_reason
+mixed_cells              6083
+no_hazard_cells          4587
+insufficient_coverage      44
+2026-10-28 17:37:01,023 | INFO | Prevalence among labelled segments: 19.1%
+2026-10-28 17:37:01,023 | INFO | These labels are MODELLED (FastFlood) static hazard labels with no timestamps; they cannot validate 24 h forecasts and are not proof that roads flooded. Test them against observed events when you have them.

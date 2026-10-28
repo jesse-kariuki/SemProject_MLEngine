@@ -1,0 +1,119 @@
+2026-10-26 14:54:05,193 | INFO | Boundary: area 1489.5 km2, 5 vertices, fills 99.8% of its bounding rectangle
+2026-10-26 14:54:05,194 | WARNING | BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill 1.00, 5 vertices). Use the real county polygon.
+2026-10-26 14:54:05,194 | WARNING | BOUNDARY CHECK: boundary area 1489 km2 is 114% above the expected county area (~696 km2). It probably includes land outside the county; check inputs.boundary_file.
+2026-10-26 14:54:05,235 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 14:54:05,250 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 14:54:05,250 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 14:54:05,250 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 14:54:05,251 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 14:54:05,251 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 14:54:10,058 | INFO | Cell area (m2): median 10010, min 10000, max 10020; total 1105.7 km2
+2026-10-26 14:54:38,978 | INFO | Cell overlap: 438922 touching pairs, 109882 overlap by more than 1 m2; overlapping area 7714497.4 m2 (0.69768% of all cell area).
+2026-10-26 14:54:38,979 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-26 14:54:38,980 | INFO | Positive cells: 25730 (23.3%)
+2026-10-26 14:54:38,999 | INFO | Cells: 110463, total area 1105.7 km2
+2026-10-26 14:55:06,918 | INFO | Boundary 1489.5 km2: 904.6 km2 (60.7%) covered by cells, 584.9 km2 without cells; cells outside boundary: 193.4 km2
+2026-10-26 14:55:07,018 | INFO | Largest uncovered parts (km2): [581.6, 3.1, 0.1]
+2026-10-26 15:08:30,450 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-26 15:08:30,488 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-26 15:08:30,501 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-26 15:08:30,501 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-26 15:08:30,501 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-26 15:08:30,502 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-26 15:08:30,502 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-26 15:08:35,047 | INFO | Cell area (m2): median 10010, min 10000, max 10020; total 1105.7 km2
+2026-10-26 15:08:59,697 | INFO | Cell overlap: 438922 touching pairs, 109882 overlap by more than 1 m2; overlapping area 7714497.4 m2 (0.69768% of all cell area).
+2026-10-26 15:08:59,698 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-26 15:08:59,699 | INFO | Positive cells: 25730 (23.3%)
+2026-10-26 15:08:59,712 | INFO | Cells: 110463, total area 1105.7 km2
+2026-10-26 15:09:20,831 | INFO | Boundary 695.9 km2: 567.1 km2 (81.5%) covered by cells, 128.8 km2 without cells; cells outside boundary: 530.9 km2
+2026-10-26 15:09:20,885 | INFO | Largest uncovered parts (km2): [67.5, 60.6, 0.5, 0.1]
+2026-10-26 15:22:45,217 | INFO | Segments: 83596 (7145 km). Outside boundary: 0. Intersecting footprint: 79009. Outside footprint: 4587 (5.49%, 441 km). Touching but below min_coverage: 44
+2026-10-26 15:22:45,247 | INFO | Share of segments outside the footprint by road class (top 8):
+               size   mean
+fclass                    
+residential   40747  0.090
+service       27693  0.009
+secondary      4316  0.000
+unclassified   4233  0.143
+tertiary       2118  0.020
+trunk          1862  0.026
+primary        1201  0.000
+motorway        388  0.000
+2026-10-26 15:22:45,613 | INFO | hazard_labels.parquet: no_hazard_cells=4587, touch_only_overlap_below_min=0; diagnostic outside footprint=4587
+2026-10-26 15:22:45,614 | INFO | The label script and the footprint test agree (difference 0).
+2026-10-26 15:22:46,487 | INFO | Wrote coverage_report.csv, coverage.png, uncovered_area.gpkg and uncovered_segments.gpkg
+2026-10-28 13:40:00,716 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 13:40:00,782 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-28 13:40:00,805 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-28 13:40:00,805 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-28 13:40:00,805 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-28 13:40:00,805 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-28 13:40:00,805 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-28 13:40:06,062 | INFO | Cell area (m2): median 10010, min 10000, max 10020; total 1105.7 km2
+2026-10-28 13:40:38,301 | INFO | Cell overlap: 438922 touching pairs, 109882 overlap by more than 1 m2; overlapping area 7714497.4 m2 (0.69768% of all cell area).
+2026-10-28 13:40:38,303 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-28 13:40:38,304 | INFO | Positive cells: 25730 (23.3%)
+2026-10-28 13:40:38,322 | INFO | Cells: 110463, total area 1105.7 km2
+2026-10-28 13:41:08,768 | INFO | Boundary 695.9 km2: 567.1 km2 (81.5%) covered by cells, 128.8 km2 without cells; cells outside boundary: 530.9 km2
+2026-10-28 13:41:08,962 | INFO | Largest uncovered parts (km2): [67.5, 60.6, 0.5, 0.1]
+2026-10-28 13:48:37,231 | INFO | Segments: 83596 (7145 km). Outside boundary: 0. Intersecting footprint: 79009. Outside footprint: 4587 (5.49%, 441 km). Touching but below min_coverage: 44
+2026-10-28 13:48:37,505 | INFO | Share of segments outside the footprint by road class (top 8):
+               size   mean
+fclass                    
+residential   40747  0.090
+service       27693  0.009
+secondary      4316  0.000
+unclassified   4233  0.143
+tertiary       2118  0.020
+trunk          1862  0.026
+primary        1201  0.000
+motorway        388  0.000
+2026-10-28 13:48:38,485 | INFO | hazard_labels.parquet: no_hazard_cells=4587, touch_only_overlap_below_min=0; diagnostic outside footprint=4587
+2026-10-28 13:48:38,485 | INFO | The label script and the footprint test agree (difference 0).
+2026-10-28 13:48:39,899 | INFO | Wrote coverage_report.csv, coverage.png, uncovered_area.gpkg and uncovered_segments.gpkg
+2026-10-28 17:37:10,846 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-28 17:37:10,921 | INFO | Hazard dataset: 110463 rows, bbox columns present: True
+2026-10-28 17:37:10,951 | INFO | flood_hazard value counts:
+value
+0    84733
+1    17551
+2     8179
+2026-10-28 17:37:10,952 | INFO |   level 0 (low depth (< 10 cm)): 84733 cells
+2026-10-28 17:37:10,953 | INFO |   level 1 (medium depth (up to 100 cm)): 17551 cells
+2026-10-28 17:37:10,953 | INFO |   level 2 (high depth (> 100 cm)): 8179 cells
+2026-10-28 17:37:10,953 | INFO | Hazard cells = flood_hazard >= 1; deep cells = flood_hazard >= 2
+2026-10-28 17:37:20,240 | INFO | Cell area (m2): median 10010, min 10000, max 10020; total 1105.7 km2
+2026-10-28 17:38:04,865 | INFO | Cell overlap: 438922 touching pairs, 109882 overlap by more than 1 m2; overlapping area 7714497.4 m2 (0.69768% of all cell area).
+2026-10-28 17:38:04,866 | WARNING | Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.
+2026-10-28 17:38:04,867 | INFO | Positive cells: 25730 (23.3%)
+2026-10-28 17:38:04,901 | INFO | Cells: 110463, total area 1105.7 km2
+2026-10-28 17:38:40,468 | INFO | Boundary 695.9 km2: 567.1 km2 (81.5%) covered by cells, 128.8 km2 without cells; cells outside boundary: 530.9 km2
+2026-10-28 17:38:40,590 | INFO | Largest uncovered parts (km2): [67.5, 60.6, 0.5, 0.1]
+2026-10-28 17:47:14,743 | INFO | Segments: 83596 (7145 km). Outside boundary: 0. Intersecting footprint: 79009. Outside footprint: 4587 (5.49%, 441 km). Touching but below min_coverage: 44
+2026-10-28 17:47:14,776 | INFO | Share of segments outside the footprint by road class (top 8):
+               size   mean
+fclass                    
+residential   40747  0.090
+service       27693  0.009
+secondary      4316  0.000
+unclassified   4233  0.143
+tertiary       2118  0.020
+trunk          1862  0.026
+primary        1201  0.000
+motorway        388  0.000
+2026-10-28 17:47:21,218 | INFO | hazard_labels.parquet: no_hazard_cells=4587, touch_only_overlap_below_min=0; diagnostic outside footprint=4587
+2026-10-28 17:47:21,219 | INFO | The label script and the footprint test agree (difference 0).
+2026-10-28 17:47:23,457 | INFO | Wrote coverage_report.csv, coverage.png, uncovered_area.gpkg and uncovered_segments.gpkg

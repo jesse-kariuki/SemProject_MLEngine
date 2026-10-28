@@ -1,0 +1,4 @@
+Template for the OPTIONAL dated flood-event inventory. The two rows are examples only - replace them with real, reviewed reports.
+event_id,observation_id,observed_status,lat,lon,event_start_local,event_end_local,date_only,spatial_precision_m,evidence_type,source_id,source_url,published_time_local,confidence,review_status,notes
+EVT_2026_04_001,OBS_0001,flooded,-1.2921,36.8219,2026-04-24 15:30,2026-04-24 19:00,false,30,news_geolocated,SRC_001,https://example.org/report,2026-04-24 20:10,high,reviewed,Example row - replace with a real reviewed report
+EVT_2026_04_001,OBS_0002,not_flooded,-1.3000,36.8000,2026-04-24 15:30,2026-04-24 19:00,false,30,official_incident_check,SRC_002,https://example.org/check,2026-04-24 21:00,medium,reviewed,Explicit evidence the road was checked and passable

@@ -1,0 +1,17 @@
+2026-10-26 14:50:41,643 | INFO | Wrote 60 grid points (5.0 km spacing) to D:\floodguard\config\grid_points.gpkg
+2026-10-26 14:50:41,644 | INFO | Note: more points do not give finer weather resolution; many may share one model cell.
+2026-10-26 14:52:20,337 | INFO | Wrote 60 grid points (5.0 km spacing) to D:\floodguard\config\grid_points.gpkg
+2026-10-26 14:52:20,337 | INFO | Note: more points do not give finer weather resolution; many may share one model cell.
+2026-10-26 15:00:10,234 | INFO | Wrote 60 grid points (5.0 km spacing) to D:\floodguard\config\grid_points.gpkg
+2026-10-26 15:00:10,235 | INFO | Note: more points do not give finer weather resolution; many may share one model cell.
+2026-10-26 15:06:33,316 | INFO | Wrote 31 grid points (5.0 km spacing) to D:\floodguard\config\grid_points.gpkg
+2026-10-26 15:06:33,317 | INFO | Note: more points do not give finer weather resolution; many may share one model cell.
+2026-10-28 13:36:05,057 | INFO | Wrote 31 grid points (5.0 km spacing) to D:\floodguard\config\grid_points.gpkg
+2026-10-28 13:36:05,058 | INFO | Note: more points do not give finer weather resolution; many may share one model cell.
+2026-10-28 14:02:49,726 | INFO | Batch 1/1 done (8 locations, 6 variables)
+2026-10-28 14:02:50,736 | INFO | Variables collected: ['precipitation', 'precipitation_probability', 'rain', 'relative_humidity_2m', 'showers', 'temperature_2m']
+2026-10-28 14:02:50,751 | INFO | Units: {'precipitation': 'mm', 'precipitation_probability': '%', 'rain': 'mm', 'relative_humidity_2m': '%', 'showers': 'mm', 'temperature_2m': '°C'}
+2026-10-28 14:02:50,754 | INFO | Valid time range (UTC): 2026-10-27 00:00:00+00:00 -> 2026-10-30 23:00:00+00:00
+2026-10-28 14:02:50,972 | INFO | weather_hourly.parquet: 4608 rows (0 duplicates removed)
+2026-10-28 17:33:23,647 | INFO | Wrote 31 grid points (5.0 km spacing) to D:\floodguard\config\grid_points.gpkg
+2026-10-28 17:33:23,648 | INFO | Note: more points do not give finer weather resolution; many may share one model cell.

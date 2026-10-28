@@ -1,0 +1,3209 @@
+Nairobi Road Flood Susceptibility
+Complete code, installation and project-structure guide
+Companion to: Nairobi_Road_Flood_Prediction_Updated_OpenMeteo_Plan.docx  |  Revision 5, 26 October 2026
+
+What changed in this revision
+This revision responds to the first real run of build_hazard_labels.py on the Nairobi data (110,463 cells; 171,568 road segments of about 100 m). 77.2% of segments were labelled and 22.8% were Unknown, and most Unknowns had no hazard cell at all. The new code helps you find out why and keeps the labels honest.
+Boundary check. 91,326 cells inside the boundary at about 10,010 m2 each is roughly 914 km2 of cells, which is already more than Nairobi County's approximate 696 km2. The boundary file is probably larger than the county (a rectangle or a wider region). That would also explain the 584.89 km2 'without cells': much of it may lie outside the county. prepare_gis.py and the new check_coverage.py now print the boundary area, vertex count and rectangle fill, and warn when it looks wrong. Fix this first.
+New script check_coverage.py. Measures the boundary area covered by cells, lists roads outside the cell footprint, saves the uncovered area and roads for QGIS, draws a map, and reconciles its count with the label script's no_hazard_cells count.
+The 243-segment gap. The label script counts a segment as covered only if it overlaps a cell by at least min_overlap_m (0.5 m). A segment that only touches a cell edge intersects the footprint but has no coverage, which would explain 29,252 versus 29,009. Those segments are now labelled touch_only_overlap_below_min so you can confirm this.
+Overlapping cells. The old check flagged any two cells that overlapped at all, which coordinate rounding causes (see the 36.94204 versus 36.94205 values in your sample). It now measures the overlapping area and says whether it matters.
+What 'mixed_cells' means. It is not conflicting data. It marks covered segments where hazard cells make up more than 0% but less than 50% of the covered length (9,597 segments). A new susceptibility_score (length-weighted mean hazard level divided by 2) is computed for every covered segment, so mixed segments still carry information. You can also set mixed_policy to negative or positive.
+Provenance. Label tables carry label_source. Predictions carry susceptibility_source: fastflood_covered where FastFlood cells cover the road, and model_predicted_no_fastflood where the value is only an estimate from the H model. Never present the second kind as FastFlood output.
+On synthetic labels. Randomly sampling the 76.7 / 15.9 / 7.4% class mix would only look complete. It is not used. Where roads genuinely lack cells, the H models give a clearly marked estimate using terrain and land cover, validated by holding out whole areas. If the uncovered area is outside the county, you do not need to fill it.
+About this document
+This guide contains every file you need to run the plan end to end: installation steps, the exact folder layout, the run order, and the full, unabridged source code for every script, the configuration file, the data dictionary and an optional event-inventory template. Nothing is abbreviated - each listing is the complete file.
+The code was written to follow the plan's rules: the flood-hazard dataset as the primary label source, Open-Meteo as the weather source, no future information used in any dated-event test, Unknown labels kept separate from confirmed negatives, spatial-block (hazard) or event-based (dated events) train/test splits, and the quality gates G1-G7 plus G4h for the hazard labels.
+Contents
+Part 1 - Prerequisites and installation
+Part 2 - Project folder structure and where each input goes
+Part 3 - Run order, quality gates and routine refresh
+Part 4 - Complete source code (17 files)
+Part 5 - What was tested, assumptions to verify, and troubleshooting
+Part 1 - Prerequisites and installation
+1.1 What you need
+Item
+Requirement
+Python
+3.11, 3.12 or 3.13 (64-bit). The code was run on Python 3.13.
+Operating system
+Windows 10/11, macOS or Linux. All paths in the code use pathlib, so they work on all three.
+Disk and memory
+A few GB free. Land-cover and DEM clips for Nairobi fit comfortably in 8 GB RAM.
+Internet
+Needed only for Open-Meteo requests and for installing packages.
+QGIS (optional)
+3.34 LTR or newer, for the visual checks described in the plan (roads over DEM, county edges). Not needed to run the scripts.
+Your data
+DEM GeoTIFF, land-cover GeoTIFF, OpenStreetMap Shapefiles (roads and, optionally, waterways), a Nairobi County boundary, and later a reviewed flood-event inventory.
+
+1.2 Create the project and a virtual environment
+Create the folder tree (Part 2), place the files from Part 4 in it, then open a terminal in the project root (the folder that contains config/ and src/).
+Windows (PowerShell)
+cd C:\path\to\nairobi_flood_project
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+macOS / Linux
+cd /path/to/nairobi_flood_project
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+If PowerShell refuses to run the activate script, run Set-ExecutionPolicy -Scope CurrentUser RemoteSigned once, then activate again.
+1.3 Alternative: conda (if pip cannot install the GIS libraries)
+Current geopandas, rasterio and pyproj wheels normally bundle GDAL, so pip is enough. If pip fails on your machine, conda-forge is the most reliable fallback:
+conda create -n nairobi_flood -c conda-forge python=3.12 geopandas rasterio shapely pyproj scipy pandas pyarrow \
+    scikit-learn joblib matplotlib requests pyyaml tqdm pytest
+conda activate nairobi_flood
+
+1.4 Verify the installation
+python -c "import geopandas, rasterio, sklearn, shapely, pyarrow, yaml, scipy, matplotlib; print('imports OK')"
+python tests/smoke_test.py
+
+The smoke test builds a fake study area, roads, DEM, land cover, weather and flood reports in a temporary folder, runs every pipeline step, and prints 'SMOKE TEST PASSED' with a small metrics table (about 30 seconds). Its numbers are meaningless; it only proves your installation and the code work. It does not touch your real data.
+1.5 Package list (requirements.txt)
+Package
+Used for
+geopandas, shapely, pyproj
+Vector GIS: boundary, roads, segmenting, spatial joins, CRS handling.
+rasterio, numpy, scipy
+Raster clip/warp, slope and relief, land-cover class fractions, nearest-neighbour search.
+pandas, pyarrow
+Tables and the Parquet files used between steps.
+scikit-learn, joblib
+Logistic regression, random forest, gradient boosting, metrics, saved models.
+matplotlib
+Precision-recall, calibration and risk-map images.
+requests
+Open-Meteo API calls.
+pyyaml
+Reads config/settings.yaml.
+tqdm, pytest
+Optional helpers; pytest runs tests/smoke_test.py.
+
+Part 2 - Project folder structure
+This is the structure from section 9 of your plan, plus a few files the code needs (marked with *). Create the empty folders first; the scripts also create output folders on demand.
+nairobi_flood_project/
+  README.md                         *
+  requirements.txt                  *
+  config/
+    settings.yaml
+    study_area.geojson              (created by prepare_gis.py)
+    grid_points.gpkg                (created by fetch_openmeteo.py grid)
+    data_dictionary.csv
+  data/
+    raw/
+      openmeteo_json/               (raw API responses, one file per batch)
+      osm_shapefiles/               keep .shp/.shx/.dbf/.prj/.cpg together
+        gis_osm_roads_free_1.*
+        gis_osm_waterways_free_1.*  (optional, for distance to rivers)
+      dem/
+        dem.tif
+      landcover/
+        landcover.tif
+      boundary/
+        nairobi_boundary.gpkg
+      flood_hazard/
+        flood_hazard.csv            PRIMARY labels (CSV or TAB-separated; .parquet also read)
+      flood_evidence/               (optional: screenshots, PDFs, links for dated events)
+    interim/
+      nairobi_boundary.gpkg         (created)
+      roads_clipped.gpkg            (created)
+      road_segments.gpkg            (created)
+      dem_clip.tif                  (created)
+      landcover_clip.tif            (created)
+      hazard_cells.gpkg             (created: hazard cells as polygons, for QGIS checks)
+      event_inventory.csv           (OPTIONAL, YOU create - see template)
+      event_inventory_template.csv  *
+    processed/
+      weather_hourly.parquet
+      static_segment_features.parquet
+      hazard_labels.parquet         *  (primary segment labels)
+      hazard_modelling_table.parquet *
+      segment_weather_map.parquet   *
+      forecast_features.parquet
+      forecast_features_live.parquet *
+      labels.parquet
+      modelling_table.parquet
+  src/
+    common.py                       *
+    fetch_openmeteo.py
+    prepare_gis.py
+    build_features.py
+    build_hazard_labels.py          * (primary labels)
+    train_static.py                 * (primary models)
+    build_labels.py                 (optional dated events; also assembles their modelling table)
+    train.py                        (optional, dated events)
+    evaluate.py                     (--static for the hazard models)
+    predict.py
+  tests/
+    smoke_test.py                   *
+  models/                           (trained models: .joblib + .json)
+  outputs/
+    maps/
+    tables/
+    metrics/
+      static/                       (hazard-model metrics and plots)
+    reports/
+  logs/
+
+2.1 Where each of your inputs goes
+Input
+Put it at
+Notes
+DEM GeoTIFF
+data/raw/dem/dem.tif
+Or change inputs.dem in settings.yaml. Original is never modified.
+Land-cover GeoTIFF
+data/raw/landcover/landcover.tif
+Check the class legend and edit landcover.class_names / builtup_codes / vegetation_codes / water_codes.
+OSM roads
+data/raw/osm_shapefiles/gis_osm_roads_free_1.shp
+Must be the LINE layer named gis_osm_roads_*, not adminareas, buildings, landuse or natural. Keep all sidecar files.
+OSM waterways (optional)
+data/raw/osm_shapefiles/gis_osm_waterways_free_1.shp
+If absent, distance_to_river_m is left empty and a warning is logged.
+County boundary
+data/raw/boundary/nairobi_boundary.gpkg
+If you only have the OSM admin-areas layer, point inputs.boundary_file at it and set boundary_name_field / boundary_name_value (for example name / Nairobi).
+Flood hazard dataset (PRIMARY)
+data/raw/flood_hazard/flood_hazard.csv
+Your cell file. Comma or TAB separated. If your column names differ, map them under hazard.columns in settings.yaml.
+Flood event inventory (optional)
+data/interim/event_inventory.csv
+Only needed for time-specific validation or Model B. Copy event_inventory_template.csv and add one row per reviewed, dated observation.
+
+2.2 The flood hazard dataset (primary label source)
+Source: SPACE4ALL FastFlood outputs, one CSV per city (Nairobi, Kisumu, Accra, Tema, Beira, Chimoio); use the Nairobi file. Columns: longitude, latitude, lon_min, lon_max, lat_min, lat_max, flood_hazard.
+flood_hazard
+Meaning (modelled flood depth)
+0
+Low flood depth, less than 10 cm. Treated as a modelled negative.
+1
+Medium flood depth, up to 100 cm. Hazard (positive).
+2
+High flood depth, above 100 cm. Hazard (positive); also summarised separately as hazard_high_fraction.
+
+build_hazard_labels.py reads it as follows.
+Step
+What the code does
+Read and clean
+Detects comma or tab separation; drops rows with missing or out-of-range coordinates or values; logs the cell count per level against the legend and warns about any level not in hazard.levels. Cells listed twice with conflicting values are dropped.
+Cell geometry
+Builds each cell from lat_min, lat_max, lon_min, lon_max (EPSG:4326) and reprojects to the working CRS. If the box is missing or inconsistent, a square of +/- fallback_half_size_m around the point is used. Cells outside the study area are ignored.
+Overlay on roads
+Cuts every road segment against the cells and measures the metres of each segment in hazard cells (level 1 or 2), in deep cells (level 2) and in level-0 cells.
+Segment label
+Positive if the hazard share of covered length >= positive_fraction_min (0.5). Negative if the share is 0. Mixed segments are excluded (mixed_policy). Segments whose covered share is below min_coverage (0.5) are Unknown, never negative.
+Exposure columns
+For every covered segment: max_hazard_value, mean_hazard_value, hazard_pos_fraction and hazard_high_fraction. These are the direct FastFlood exposure and are carried into the predictions and the optional event models.
+Spatial blocks
+Each segment gets a block id (block_size_m, default 2 km) used to hold out whole areas during validation.
+Gate G4h
+Warns if there are fewer than 30 positive or 30 negative segments, or if positives fall in fewer than 5 spatial blocks.
+
+Limits that come from how the data were made:
+Modelled, not observed. FastFlood is a rapid first-order model. Local stakeholders have used the Ideamaps platform to validate the results, but a 0 is still a modelled low depth, not a confirmed dry road, and a 1 or 2 is not a confirmed flooded road.
+No drainage. Culverts, storm drains and retention basins are not represented, so urban road flooding can be over- or under-estimated. Backflow from lakes or coast is also not captured accurately.
+Steady state and no calibration. Flow in and out is treated as balanced, and no calibration was done.
+Selected events only. The rainfall events were chosen using TAHMO completeness, DFO records and media reports. The hazard map is the response to those events (long, 10-12 hour rainfall), not to every storm. Ask the authors which event(s) were used for Nairobi; the TAHMO data can be requested.
+Resolution. The model ran at 40 m and was resampled to 100 m cells. A road is much narrower than a cell, so the cell value is a neighbourhood hazard, not a depth on the carriageway.
+Circular with the predictors. The DEM, land cover and soil data that drove FastFlood overlap with the features used to predict it. Use H_* models only as a fast emulator or to extend the map, and say so in your write-up.
+Check coverage. Look at data/interim/hazard_cells.gpkg over the roads in QGIS and read the unknown-reason counts in the log. Roads outside mapped cells stay Unknown.
+
+Recommended use. Treat the FastFlood exposure columns as the susceptibility layer. Use the H_* models only as an emulator. To say anything about real flooding, or about whether rainfall forecasts help, collect dated, reviewed flood reports (the optional event workflow) and test FastFlood against them.
+
+2.3 Optional event inventory columns
+Column
+Meaning
+event_id
+Storm/event identifier. All rows of one event are kept in the same train/test split.
+observation_id
+Unique id of this report row.
+observed_status
+flooded, not_flooded or unclear. not_flooded needs explicit evidence the place was checked.
+lat, lon
+WGS 84 coordinates of the report.
+event_start_local, event_end_local
+East Africa Time (Africa/Nairobi). Forecast issue time = start minus labels.issue_lead_hours (default 6 h).
+date_only
+true when only a date is known. Uses local midnight as the issue time and caps confidence at low, so it becomes Unknown under the default settings.
+spatial_precision_m
+How precisely the location is known. Above labels.max_spatial_precision_m (100 m) becomes Unknown.
+evidence_type, source_id, source_url, published_time_local
+Traceability for every label.
+confidence
+high, medium or low. Only levels in labels.accepted_confidence are used.
+review_status
+reviewed, pending or rejected. Only reviewed rows become labels (require_reviewed: true).
+notes
+Free text.
+
+Part 3 - Run order, quality gates and routine refresh
+3.1 Full run order
+Run these from the project root with the virtual environment active. Each step writes a log to logs/. Steps 1-10 are the primary workflow built on the hazard dataset (read the step 5 and 6 logs before going further); steps 11-17 are the optional dated-event workflow.
+#
+Command
+Produces
+Gate / plan phase
+1
+python src/prepare_gis.py inventory
+outputs/tables/asset_inventory.csv (CRS, pixel size, bounds, NoData, boundary overlap)
+G2, G3 / Phase 1
+2
+python src/prepare_gis.py all
+boundary, roads_clipped, road_segments (.gpkg), dem_clip.tif, landcover_clip.tif, config/study_area.geojson
+G2, G3 / Phase 2
+3
+python src/fetch_openmeteo.py grid
+config/grid_points.gpkg (run before step 4 so roads are linked to weather points)
+Phase 3-4
+4
+python src/build_features.py static
+static_segment_features.parquet, segment_weather_map.parquet
+Phase 2
+5
+python src/build_hazard_labels.py
+hazard_labels.parquet, hazard_cells.gpkg, outputs/tables/hazard_label_summary.csv
+G4h / Phase 5
+6
+python src/check_coverage.py
+coverage_report.csv, coverage.png, uncovered_area.gpkg, uncovered_segments.gpkg; boundary area check; reconciliation with the label counts
+G2, G4h
+7
+python src/train_static.py
+models/H_*.joblib + .json, oof_static_predictions.parquet, feature_importance_H_rf.csv
+Phase 7
+8
+python src/evaluate.py --static
+outputs/metrics/static/metrics.csv, g6_comparison.csv, PR and calibration plots
+Phase 7
+9
+python src/predict.py
+Static susceptibility: outputs/predictions_H_rf_static.csv/.gpkg and a map
+Phase 8
+10
+python src/fetch_openmeteo.py fetch --mode live --limit 8, then python src/predict.py --latest
+Optional weather test, then susceptibility with 24 h rain context columns (the susceptibility score and tier do not change)
+G1 / Phase 3, G7
+11
+python src/fetch_openmeteo.py fetch --mode previous_runs --start-date YYYY-MM-DD --end-date YYYY-MM-DD
+Leakage-safe archived forecasts covering your event dates
+G1, G5
+12
+python src/build_labels.py labels
+labels.parquet, outputs/tables/label_summary.csv
+G4
+13
+python src/build_features.py forecast --from-labels
+forecast_features.parquet
+G5
+14
+python src/build_labels.py assemble
+modelling_table.parquet
+G5
+15
+python src/train.py
+Models A and B, rain-rule and FastFlood baselines, FastFlood-feature models (_haz), oof_predictions.parquet
+Phase 7
+16
+python src/evaluate.py
+outputs/metrics/metrics.csv, g6_comparison.csv, plots
+G6
+17
+python src/predict.py --model B_rf --latest
+Forecast-conditioned predictions
+G7
+
+Steps 3 and 4 must be run in that order. Start with --limit 8 in step 10 to confirm timestamps, units and variables before fetching the whole grid. Steps 11-17 need real dated, reviewed flood reports; without them there is no forecast model at all, only the susceptibility map.
+3.2 How the three weather modes differ
+Mode
+Open-Meteo endpoint
+Use and caution
+live
+Forecast API
+Current forecasts for the operational feed. The API does not expose the model run time, so the retrieval time (floored to the hour) is stored as a proxy and marked retrieval_proxy. Run it repeatedly to build your own genuine forecast archive.
+previous_runs
+Previous Runs API (variable_previous_dayN)
+Forecast made about N days before the valid time. With the default previous_days: [1], every value used for a 24 h window was issued before the window started, so it is safe against leakage. Check actual coverage for Nairobi and your dates.
+historical
+Historical Forecast API
+Stitched archive with no known run time (marked unknown_archive). build_features ignores these rows, so they are not used for strict 24 h evaluation, in line with section 3.4 of the plan.
+
+3.3 Quality gates and where the code enforces them
+Gate
+What the code does
+If it fails
+G1
+fetch logs variables, units, time range and missing variables; saves raw JSON and source metadata.
+Fix endpoint, batching, timezone or archive coverage.
+G2
+prepare_gis logs raster CRS, resolution, NoData and the share of the boundary each raster covers; warns below 99% or below 50% valid pixels.
+Correct boundary, projection or clipping.
+G3
+Stops if the roads file is missing or has non-line geometries; warns if .shx/.dbf/.prj are missing.
+Find the real gis_osm_roads_* layer.
+G4h
+build_hazard_labels warns when positive or negative segments are few, or positives sit in too few spatial blocks; Unknown (uncovered, mixed, conflicting) segments are never turned into negatives.
+Check hazard coverage and the meaning of 0; widen data or lower block size.
+G4
+(Optional events) build_labels warns if fewer than min_events_for_modelling events have positives or if there are no confirmed negatives.
+Narrow to a case study or report a static susceptibility study.
+G5
+Forecast features use only rows issued at or before the issue time; assertions stop the run on any leakage; labels cannot be configured as predictors; splits are by event (dated events) or by spatial block (hazard dataset); coordinates are never used as predictors.
+Rebuild features or split.
+G6
+evaluate.py bootstraps whole events and reports the PR-AUC difference (B vs A, and B vs the rain rule) with a 95% interval and a plain verdict. With --static it does the same over spatial blocks for H models against the low-elevation rule. Only dated events can show that forecast rainfall helps.
+Report no demonstrated improvement.
+G7
+Raw responses, timestamps, logs and a data-quality flag are saved on every run; predict.py marks outputs as not validated.
+Keep it a manual research prototype.
+
+3.4 Routine refresh (optional scheduling)
+The susceptibility map (H_rf) does not change with the weather; only the optional rain context columns do. Refreshing them is two commands. None of this is a warning service.
+python src/fetch_openmeteo.py fetch --mode live
+python src/build_features.py static          # only needed again if GIS inputs change
+python src/predict.py --latest
+
+Linux/macOS cron example (every 6 hours; adjust paths):
+0 */6 * * * cd /path/to/nairobi_flood_project && .venv/bin/python src/fetch_openmeteo.py fetch --mode live && .venv/bin/python src/predict.py --latest
+
+On Windows, create a Task Scheduler task that runs the same two python commands from the project folder.
+
+Part 4 - Complete source code
+Create each file at the path shown and paste the listing exactly. Each source line is its own paragraph, so copying from Word keeps the line breaks and indentation. Very long lines wrap on screen but copy as a single line.
+4.1  requirements.txt
+Python dependencies. Install with: pip install -r requirements.txt
+geopandas>=1.0
+shapely>=2.0
+pyproj>=3.6
+rasterio>=1.3
+numpy>=1.26
+scipy>=1.11
+pandas>=2.2
+pyarrow>=14.0
+scikit-learn>=1.4
+joblib>=1.3
+matplotlib>=3.8
+requests>=2.31
+pyyaml>=6.0
+tqdm>=4.66
+pytest>=8.0
+
+4.2  config/settings.yaml
+Central configuration. Edit input paths, the hazard column mapping and label rules, the land-cover legend codes, the road classes to keep, segment length and model settings here rather than in the code.
+# Central configuration for the Nairobi road flood prediction project.
+# All paths are relative to the project root (the folder that contains config/ and src/).
+
+project:
+  name: nairobi_flood_project
+  display_timezone: Africa/Nairobi      # EAT, UTC+3, used for user-facing outputs
+  working_crs: EPSG:32737               # WGS 84 / UTM zone 37S (metres) - suits Nairobi
+  geographic_crs: EPSG:4326
+  random_seed: 42
+  expected_county_area_km2: 696         # approximate official Nairobi County area - verify; used only for a boundary check
+
+paths:
+  raw_openmeteo: data/raw/openmeteo_json
+  interim: data/interim
+  processed: data/processed
+  models: models
+  outputs: outputs
+  logs: logs
+  study_area: config/study_area.geojson
+  grid_points: config/grid_points.gpkg
+  data_dictionary: config/data_dictionary.csv
+
+inputs:
+  # Nairobi County boundary. If you only have the OSM admin-areas layer, point to it and
+  # fill in boundary_name_field / boundary_name_value so the right polygon is selected.
+  boundary_file: data/raw/boundary/nairobi_boundary.gpkg
+  boundary_layer: null                  # layer name inside a .gpkg, or null for the default
+  boundary_name_field: null             # e.g. name
+  boundary_name_value: null             # e.g. Nairobi
+  roads_shapefile: data/raw/osm_shapefiles/gis_osm_roads_free_1.shp
+  rivers_shapefile: data/raw/osm_shapefiles/gis_osm_waterways_free_1.shp   # optional
+  dem: data/raw/dem/dem.tif
+  landcover: data/raw/landcover/landcover.tif
+  event_inventory: data/interim/event_inventory.csv      # OPTIONAL: time-stamped events (secondary source)
+  hazard_dataset: data/raw/flood_hazard/flood_hazard.csv   # PRIMARY label source (.csv, .tsv or .parquet)
+
+roads:
+  # Geofabrik "fclass" values to keep. Decide explicitly about footpaths/tracks/service roads.
+  keep_fclass:
+    - motorway
+    - motorway_link
+    - trunk
+    - trunk_link
+    - primary
+    - primary_link
+    - secondary
+    - secondary_link
+    - tertiary
+    - tertiary_link
+    - unclassified
+    - residential
+    - living_street
+    - service
+  segment_length_m: 200                 # target segment length (100-250 m recommended)
+  min_segment_length_m: 10              # segments shorter than this are dropped
+
+dem:
+  resolution_m: 30                      # grid used for the working DEM (clip + warp)
+  nodata: -9999
+  relief_window_m: 150                  # window for local relief (max - min elevation)
+  margin_m: 500                         # margin kept around the boundary when clipping
+
+landcover:
+  product: ESA WorldCover               # record the real product name and year
+  year: 2021
+  resolution_m: 10
+  nodata: 0
+  buffer_m: 50                          # buffer radius around each segment for class fractions
+  # VERIFY these against the legend of YOUR land-cover raster before using them.
+  class_names:
+    10: tree_cover
+    20: shrubland
+    30: grassland
+    40: cropland
+    50: built_up
+    60: bare_sparse
+    70: snow_ice
+    80: water
+    90: herbaceous_wetland
+    95: mangroves
+    100: moss_lichen
+  builtup_codes: [50]
+  vegetation_codes: [10, 20, 30, 40]
+  water_codes: [80, 90]
+
+rivers:
+  keep_fclass: [river, stream, canal, drain]
+
+openmeteo:
+  forecast_url: https://api.open-meteo.com/v1/forecast
+  historical_forecast_url: https://historical-forecast-api.open-meteo.com/v1/forecast
+  previous_runs_url: https://previous-runs-api.open-meteo.com/v1/forecast
+  model: null                           # null = Open-Meteo "best match"; or a single model name
+  hourly:
+    - precipitation
+    - rain
+    - showers
+    - precipitation_probability
+    - relative_humidity_2m
+    - temperature_2m
+  core_hourly:                          # fallback list if the full list is rejected
+    - precipitation
+    - rain
+    - showers
+  previous_days: [1]                    # previous-runs mode: forecasts made N days earlier
+  grid_spacing_km: 5
+  batch_size: 10                        # coordinates per API request
+  forecast_days: 3
+  past_days: 1
+  sleep_seconds: 1.0                    # pause between requests (be polite to the free API)
+  max_retries: 4
+  timeout_seconds: 60
+
+forecast_features:
+  window_hours: 24
+  short_window_hours: 6
+  wet_hour_threshold_mm: 0.1
+  min_hour_coverage: 0.9                # require at least this fraction of hours to be present
+  antecedent_hours: 24
+
+hazard:
+  # Primary label source: SPACE4ALL FastFlood OUTPUT (one CSV per city; use the Nairobi file). One row per
+  # 100 x 100 m cell; flood_hazard = modelled hazard category in terms of flood depth (check the repository
+  # metadata for the category legend and set positive_threshold accordingly). Limits: modelled not observed;
+  # no drainage infrastructure; steady-state; no calibration; selected rainfall events only; NO date/time.
+  # It trains a STATIC susceptibility model (an emulator of FastFlood) and gives exposure features that can be
+  # tested against observed events; it cannot validate 24-hour forecasts by itself.
+  columns:                              # map your column names here if they differ
+    latitude: latitude
+    longitude: longitude
+    lat_min: lat_min
+    lat_max: lat_max
+    lon_min: lon_min
+    lon_max: lon_max
+    value: flood_hazard
+  levels:                               # legend from the SPACE4ALL metadata (modelled flood depth)
+    0: low depth (< 10 cm)
+    1: medium depth (up to 100 cm)
+    2: high depth (> 100 cm)
+  positive_threshold: 1                 # flood_hazard >= 1 (depth >= 10 cm) = hazard cell; use 2 for deep flooding only
+  high_threshold: 2                     # level counted in hazard_high_fraction (depth > 100 cm)
+  treat_zero_as_negative: true          # 0 = modelled depth < 10 cm, i.e. a MODELLED negative (not observed dry)
+  fallback_half_size_m: 50              # square half-width used when bbox columns are missing
+  positive_fraction_min: 0.5            # segment is positive if >= this share of covered length is positive
+  mixed_policy: exclude                 # segments with 0 < share < min: exclude | positive | negative
+  min_coverage: 0.5                     # share of segment length that must lie inside mapped cells
+  min_overlap_m: 0.5                    # a segment/cell overlap shorter than this does not count as coverage
+  min_positive_segments: 30             # gate G4h warning thresholds
+  min_negative_segments: 30
+  min_positive_blocks: 5
+  block_size_m: 2000                    # spatial blocks for leave-block-out validation
+
+labels:
+  timezone: Africa/Nairobi
+  match_radius_m: 50                    # distance used to link a report to road segments
+  max_spatial_precision_m: 100          # reports less precise than this become Unknown
+  issue_lead_hours: 6                   # forecast issue time = event start minus this many hours
+  accepted_confidence: [high, medium]   # confidence levels accepted for labels
+  require_reviewed: true
+  min_events_for_modelling: 5           # gate G4 warning threshold
+
+training:
+  n_splits: 5
+  use_hazard_features_in_event_models: true   # adds FastFlood exposure to the optional dated-event models (*_haz)
+  hazard_features: [max_hazard_value, mean_hazard_value, hazard_pos_fraction, hazard_high_fraction]
+  decision_threshold: 0.5
+  rule_threshold_mm_24h: 20.0           # transparent baseline: flag if next-24h rain >= this
+  model_version_prefix: v0.1.0
+  static_features:
+    - elevation_m
+    - slope_deg
+    - local_relief_m
+    - builtup_fraction
+    - vegetation_fraction
+    - water_fraction
+    - distance_to_river_m
+    - segment_length_m
+    - is_bridge
+    - is_tunnel
+  categorical_features:
+    - road_class
+  forecast_features:
+    - rain_fcst_next_6h_mm
+    - rain_fcst_next_24h_mm
+    - max_hourly_precip_mm
+    - wet_hours_count
+    - precipitation_probability_max
+    - antecedent_fcst_prev_24h_mm
+
+evaluation:
+  bootstrap_replicates: 1000
+  calibration_bins: 5
+
+prediction:
+  default_model: H_rf                   # H_* = trained on the hazard dataset (static susceptibility)
+  validated: false                      # keep false until thresholds/calibration are reviewed
+  risk_tiers:                           # illustrative susceptibility tier thresholds, NOT validated
+    Low: 0.0
+    Medium: 0.3
+    High: 0.6
+
+4.3  src/common.py
+Shared helpers: settings loader, path resolution, logging, time utilities. Imported by every script.
+"""Shared helpers: settings, paths, logging, time utilities."""
+from __future__ import annotations
+
+import logging
+import os
+import sys
+from pathlib import Path
+
+import pandas as pd
+import shapely
+import yaml
+
+PROJECT_ROOT = Path(os.environ.get("FLOOD_PROJECT_ROOT", Path(__file__).resolve().parents[1])).resolve()
+DEFAULT_CONFIG = PROJECT_ROOT / "config" / "settings.yaml"
+
+
+def load_settings(path: str | os.PathLike | None = None) -> dict:
+    """Load settings.yaml (path defaults to config/settings.yaml)."""
+    cfg_path = Path(path) if path else DEFAULT_CONFIG
+    with open(cfg_path, "r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
+def resolve(rel_path: str | os.PathLike) -> Path:
+    """Resolve a path from settings relative to the project root."""
+    p = Path(rel_path)
+    return p if p.is_absolute() else PROJECT_ROOT / p
+
+
+def ensure_parent(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def setup_logging(name: str, cfg: dict | None = None) -> logging.Logger:
+    """Console + file logger writing to logs/<name>.log."""
+    logger = logging.getLogger(name)
+    if logger.handlers:
+        return logger
+    logger.setLevel(logging.INFO)
+    fmt = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setFormatter(fmt)
+    logger.addHandler(sh)
+    log_dir = resolve((cfg or {}).get("paths", {}).get("logs", "logs"))
+    log_dir.mkdir(parents=True, exist_ok=True)
+    fh = logging.FileHandler(log_dir / f"{name}.log", encoding="utf-8")
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+    return logger
+
+
+def to_display_tz(series: pd.Series, cfg: dict) -> pd.Series:
+    """Convert a UTC datetime series to the display timezone (EAT)."""
+    return series.dt.tz_convert(cfg["project"]["display_timezone"])
+
+
+def utc(value) -> pd.Timestamp:
+    """Parse any timestamp-like value to a tz-aware UTC Timestamp."""
+    ts = pd.Timestamp(value)
+    if ts.tzinfo is None:
+        ts = ts.tz_localize("UTC")
+    return ts.tz_convert("UTC")
+
+
+def boundary_sanity(geom, cfg: dict, log) -> dict:
+    """Log area, complexity and rectangle-likeness of the study boundary (geom in the working CRS, metres).
+
+    A rectangle, or an area much larger than the real county, makes every coverage figure misleading.
+    """
+    area_km2 = geom.area / 1e6
+    env_km2 = geom.envelope.area / 1e6
+    fill = area_km2 / env_km2 if env_km2 else float("nan")
+    n_vertices = int(shapely.get_num_coordinates(geom))
+    expected = cfg.get("project", {}).get("expected_county_area_km2")
+    log.info("Boundary: area %.1f km2, %d vertices, fills %.1f%% of its bounding rectangle", area_km2, n_vertices, 100 * fill)
+    if fill > 0.97 or n_vertices < 20:
+        log.warning("BOUNDARY CHECK: the boundary looks like a rectangle/bounding box (fill %.2f, %d vertices). "
+                    "Use the real county polygon.", fill, n_vertices)
+    if expected and area_km2 > 1.15 * expected:
+        log.warning("BOUNDARY CHECK: boundary area %.0f km2 is %.0f%% above the expected county area (~%.0f km2). "
+                    "It probably includes land outside the county; check inputs.boundary_file.",
+                    area_km2, 100 * (area_km2 / expected - 1), expected)
+    return {"boundary_area_km2": area_km2, "boundary_vertices": n_vertices, "boundary_bbox_fill": fill}
+
+4.4  src/prepare_gis.py
+Verifies assets, clips and cleans roads, splits them into stable segments, and clips/warps the DEM and land cover to a working grid. Commands: inventory, all.
+"""Phase 1-2: verify assets, clip roads, build road segments, clip/warp DEM and land cover.
+
+Usage:
+    python src/prepare_gis.py inventory      # metadata + overlap QA only (gate G2/G3)
+    python src/prepare_gis.py all            # boundary, roads, segments, rasters
+Original downloads are never modified.
+"""
+from __future__ import annotations
+
+import argparse
+import math
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import rasterio
+import shapely
+from rasterio.transform import from_origin
+from rasterio.warp import Resampling, reproject
+from shapely.geometry import LineString, MultiLineString, box
+from shapely.ops import substring
+
+from common import boundary_sanity, ensure_parent, load_settings, resolve, setup_logging
+
+ROAD_KEEP_COLS = ["osm_id", "fclass", "name", "ref", "oneway", "maxspeed", "layer", "bridge", "tunnel", "surface"]
+
+
+# --------------------------------------------------------------------------------------
+# Boundary
+# --------------------------------------------------------------------------------------
+def load_boundary(cfg: dict, log) -> gpd.GeoDataFrame:
+    inp = cfg["inputs"]
+    path = resolve(inp["boundary_file"])
+    if not path.exists():
+        raise FileNotFoundError(f"Boundary file not found: {path}")
+    kwargs = {"layer": inp["boundary_layer"]} if inp.get("boundary_layer") else {}
+    gdf = gpd.read_file(path, **kwargs)
+    if inp.get("boundary_name_field") and inp.get("boundary_name_value"):
+        field, value = inp["boundary_name_field"], inp["boundary_name_value"]
+        if field not in gdf.columns:
+            raise KeyError(f"Boundary field '{field}' not in columns {list(gdf.columns)}")
+        gdf = gdf[gdf[field].astype(str).str.strip().str.lower() == str(value).strip().lower()]
+        if gdf.empty:
+            raise ValueError(f"No boundary polygon where {field} == {value}")
+    if gdf.crs is None:
+        raise ValueError("Boundary has no CRS defined; assign the correct CRS before use.")
+    gdf = gdf.to_crs(cfg["project"]["working_crs"])
+    geom = shapely.make_valid(gdf.geometry.union_all())
+    out = gpd.GeoDataFrame({"name": ["study_area"]}, geometry=[geom], crs=cfg["project"]["working_crs"])
+    boundary_sanity(geom, cfg, log)
+    return out
+
+
+# --------------------------------------------------------------------------------------
+# Rasters
+# --------------------------------------------------------------------------------------
+def raster_info(path, boundary_wgs: gpd.GeoDataFrame | None, label: str) -> dict:
+    with rasterio.open(path) as src:
+        info = {
+            "asset": label,
+            "path": str(path),
+            "crs": str(src.crs),
+            "width": src.width,
+            "height": src.height,
+            "pixel_x": src.res[0],
+            "pixel_y": src.res[1],
+            "bounds": tuple(round(v, 5) for v in src.bounds),
+            "dtype": src.dtypes[0],
+            "nodata": src.nodata,
+            "units": (src.units[0] if src.units and src.units[0] else None),
+        }
+        if boundary_wgs is not None and src.crs is not None:
+            b = boundary_wgs.to_crs(src.crs).union_all()
+            rb = box(*src.bounds)
+            info["boundary_fraction_covered"] = round(b.intersection(rb).area / b.area, 4)
+    return info
+
+
+def warp_to_grid(src_path, dst_path, bounds, res, resampling, nodata, crs, dtype, log):
+    """Warp src raster onto a regular grid in `crs` covering `bounds` (minx, miny, maxx, maxy)."""
+    minx, miny, maxx, maxy = bounds
+    minx = math.floor(minx / res) * res
+    miny = math.floor(miny / res) * res
+    maxx = math.ceil(maxx / res) * res
+    maxy = math.ceil(maxy / res) * res
+    width = int(round((maxx - minx) / res))
+    height = int(round((maxy - miny) / res))
+    transform = from_origin(minx, maxy, res, res)
+    with rasterio.open(src_path) as src:
+        dst = np.full((height, width), nodata, dtype=dtype)
+        reproject(
+            source=rasterio.band(src, 1),
+            destination=dst,
+            src_transform=src.transform,
+            src_crs=src.crs,
+            src_nodata=src.nodata,
+            dst_transform=transform,
+            dst_crs=crs,
+            dst_nodata=nodata,
+            resampling=resampling,
+        )
+    profile = {
+        "driver": "GTiff", "height": height, "width": width, "count": 1, "dtype": dtype,
+        "crs": crs, "transform": transform, "nodata": nodata, "compress": "deflate",
+    }
+    ensure_parent(dst_path)
+    with rasterio.open(dst_path, "w", **profile) as out:
+        out.write(dst, 1)
+    valid = np.mean(dst != nodata)
+    log.info("Wrote %s (%d x %d, %.1f%% valid)", dst_path.name, width, height, 100 * valid)
+    if valid < 0.5:
+        log.warning("%s has under 50%% valid pixels - check CRS/coverage of the source raster.", dst_path.name)
+
+
+def prepare_rasters(cfg: dict, boundary: gpd.GeoDataFrame, log) -> None:
+    crs = cfg["project"]["working_crs"]
+    interim = resolve(cfg["paths"]["interim"])
+
+    dem_cfg = cfg["dem"]
+    bounds = boundary.buffer(dem_cfg["margin_m"]).total_bounds
+    warp_to_grid(resolve(cfg["inputs"]["dem"]), interim / "dem_clip.tif", bounds, dem_cfg["resolution_m"],
+                 Resampling.bilinear, float(dem_cfg["nodata"]), crs, "float32", log)
+
+    lc_cfg = cfg["landcover"]
+    warp_to_grid(resolve(cfg["inputs"]["landcover"]), interim / "landcover_clip.tif", bounds, lc_cfg["resolution_m"],
+                 Resampling.nearest, int(lc_cfg["nodata"]), crs, "uint8", log)  # nearest: categorical
+
+
+# --------------------------------------------------------------------------------------
+# Roads
+# --------------------------------------------------------------------------------------
+def explode_lines(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    gdf = gdf.explode(index_parts=False, ignore_index=True)
+    return gdf[gdf.geometry.geom_type == "LineString"].reset_index(drop=True)
+
+
+def clip_roads(cfg: dict, boundary: gpd.GeoDataFrame, log) -> gpd.GeoDataFrame:
+    path = resolve(cfg["inputs"]["roads_shapefile"])
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Roads layer not found: {path}. The OSM download has several layers - look for a "
+            "gis_osm_roads_* LINE layer, not adminareas/buildings/landuse/natural.")
+    roads = gpd.read_file(path)
+    if roads.crs is None:
+        raise ValueError("Roads layer has no CRS (.prj missing?). Keep .shp/.shx/.dbf/.prj/.cpg together.")
+    log.info("Roads read: %d features, geometry types %s", len(roads), sorted(roads.geom_type.unique()))
+    if not roads.geom_type.isin(["LineString", "MultiLineString"]).all():
+        raise ValueError("Roads layer contains non-line geometries - wrong layer loaded (gate G3).")
+
+    roads = roads.to_crs(cfg["project"]["working_crs"])
+    roads = roads[~roads.geometry.is_empty & roads.geometry.notna()].copy()
+    roads["geometry"] = shapely.make_valid(roads.geometry.values)
+    keep = cfg["roads"]["keep_fclass"]
+    if "fclass" in roads.columns:
+        before = len(roads)
+        roads = roads[roads["fclass"].isin(keep)]
+        log.info("fclass filter kept %d of %d features", len(roads), before)
+        log.info("fclass counts kept:\n%s", roads["fclass"].value_counts().to_string())
+    else:
+        log.warning("No 'fclass' column - road class filter skipped. Columns: %s", list(roads.columns))
+
+    cols = [c for c in ROAD_KEEP_COLS if c in roads.columns]
+    roads = roads[cols + ["geometry"]]
+    clipped = gpd.clip(roads, boundary.geometry.iloc[0])
+    clipped = explode_lines(clipped)
+    clipped = clipped[clipped.geometry.length > 0]
+    n0 = len(clipped)
+    clipped = clipped.drop_duplicates(subset=["geometry"] if "osm_id" not in clipped.columns else ["osm_id", "geometry"])
+    log.info("Dropped %d duplicate road records; %d lines remain", n0 - len(clipped), len(clipped))
+    if clipped.empty:
+        raise ValueError("No roads left after clipping - check CRS of boundary and roads (gate G2).")
+    return clipped.reset_index(drop=True)
+
+
+def split_line(line: LineString, target_m: float) -> list[LineString]:
+    length = line.length
+    n = max(1, int(round(length / target_m)))
+    if n == 1:
+        return [line]
+    step = length / n
+    return [substring(line, i * step, (i + 1) * step) for i in range(n)]
+
+
+def build_segments(roads: gpd.GeoDataFrame, cfg: dict, log) -> gpd.GeoDataFrame:
+    target = cfg["roads"]["segment_length_m"]
+    min_len = cfg["roads"]["min_segment_length_m"]
+    sort_cols = [c for c in ["osm_id"] if c in roads.columns]
+    roads = roads.assign(wkt_tmp=roads.geometry.to_wkt(rounding_precision=1))
+    roads = roads.sort_values(sort_cols + ["wkt_tmp"]).reset_index(drop=True)  # deterministic order -> stable IDs
+    rows = []
+    for rec in roads.itertuples(index=False):
+        attrs = rec._asdict()
+        geom = attrs.pop("geometry")
+        attrs.pop("wkt_tmp")
+        for k, piece in enumerate(split_line(geom, target)):
+            if piece.length >= min_len and not piece.is_empty:
+                rows.append({**attrs, "piece_in_road": k, "geometry": piece})
+    seg = gpd.GeoDataFrame(rows, crs=roads.crs)
+    seg.insert(0, "segment_id", [f"NRD_{i + 1:06d}" for i in range(len(seg))])
+    seg["segment_length_m"] = seg.geometry.length.round(2)
+    log.info("Built %d segments (target %d m); length quantiles (m): %s", len(seg), target,
+             seg["segment_length_m"].quantile([0, .05, .5, .95, 1]).round(1).to_dict())
+    return seg
+
+
+# --------------------------------------------------------------------------------------
+def run_inventory(cfg: dict, log) -> pd.DataFrame:
+    boundary = load_boundary(cfg, log)
+    bwgs = boundary.to_crs(cfg["project"]["geographic_crs"])
+    rows = [raster_info(resolve(cfg["inputs"]["dem"]), bwgs, "dem"),
+            raster_info(resolve(cfg["inputs"]["landcover"]), bwgs, "landcover")]
+    df = pd.DataFrame(rows)
+    out = ensure_parent(resolve(cfg["paths"]["outputs"]) / "tables" / "asset_inventory.csv")
+    df.to_csv(out, index=False)
+    log.info("Asset inventory:\n%s", df.to_string())
+    for r in rows:
+        if r.get("boundary_fraction_covered", 1) < 0.99:
+            log.warning("%s covers only %.1f%% of the boundary (gate G2).", r["asset"],
+                        100 * r["boundary_fraction_covered"])
+    roads_path = resolve(cfg["inputs"]["roads_shapefile"])
+    if roads_path.exists():
+        sidecars = [roads_path.with_suffix(s).exists() for s in (".shx", ".dbf", ".prj")]
+        log.info("Roads sidecars (.shx, .dbf, .prj) present: %s", sidecars)
+        if not all(sidecars):
+            log.warning("Missing Shapefile sidecar files - keep all components together (gate G3).")
+    else:
+        log.warning("Roads shapefile not found at %s", roads_path)
+    return df
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("step", choices=["inventory", "all"])
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("prepare_gis", cfg)
+
+    if args.step == "inventory":
+        run_inventory(cfg, log)
+        return
+
+    run_inventory(cfg, log)
+    interim = resolve(cfg["paths"]["interim"])
+    boundary = load_boundary(cfg, log)
+    ensure_parent(interim / "nairobi_boundary.gpkg")
+    boundary.to_file(interim / "nairobi_boundary.gpkg", layer="boundary", driver="GPKG")
+    study = ensure_parent(resolve(cfg["paths"]["study_area"]))
+    boundary.to_crs(cfg["project"]["geographic_crs"]).to_file(study, driver="GeoJSON")
+
+    roads = clip_roads(cfg, boundary, log)
+    roads.to_file(interim / "roads_clipped.gpkg", layer="roads", driver="GPKG")
+    segments = build_segments(roads, cfg, log)
+    segments.to_file(interim / "road_segments.gpkg", layer="segments", driver="GPKG")
+    prepare_rasters(cfg, boundary, log)
+    log.info("prepare_gis complete.")
+
+
+if __name__ == "__main__":
+    main()
+
+4.5  src/fetch_openmeteo.py
+Builds the weather point grid, fetches hourly forecasts in batches with retries, saves raw JSON and the normalised table. Commands: grid, fetch.
+"""Open-Meteo ingestion: build a weather grid, fetch hourly forecasts, store raw + normalised data.
+
+Usage:
+    python src/fetch_openmeteo.py grid
+    python src/fetch_openmeteo.py fetch --mode live --limit 8                 # prototype test
+    python src/fetch_openmeteo.py fetch --mode live                           # full grid, current forecast
+    python src/fetch_openmeteo.py fetch --mode previous_runs --start-date 2025-03-01 --end-date 2025-05-31
+    python src/fetch_openmeteo.py fetch --mode historical --start-date 2025-03-01 --end-date 2025-05-31
+
+Modes
+    live           Forecast API. Issue time is NOT exposed by the API, so the retrieval time floored to the
+                   hour is stored as a proxy (issue_time_source = 'retrieval_proxy'). Run it on a schedule.
+    previous_runs  Previous Runs API (<var>_previous_dayN). Forecast made ~N days before the valid time, so
+                   it is safe against leakage for a 24 h window (issue_time_source = 'nominal_previous_day').
+    historical     Historical Forecast API (stitched archive). The run time is unknown
+                   (issue_time_source = 'unknown_archive'); NOT suitable for strict 24 h evaluation.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import time
+from datetime import datetime, timezone
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import requests
+from shapely.geometry import Point
+
+from common import ensure_parent, load_settings, resolve, setup_logging
+
+KEY_COLS = ["location_id", "valid_time_utc", "variable", "forecast_model", "source_endpoint",
+            "forecast_issue_time_utc"]
+
+
+# --------------------------------------------------------------------------------------
+# Grid
+# --------------------------------------------------------------------------------------
+def build_grid(cfg: dict, log) -> gpd.GeoDataFrame:
+    study = gpd.read_file(resolve(cfg["paths"]["study_area"]))
+    crs = cfg["project"]["working_crs"]
+    poly = study.to_crs(crs).geometry.union_all()
+    spacing = cfg["openmeteo"]["grid_spacing_km"] * 1000.0
+    minx, miny, maxx, maxy = poly.bounds
+    xs = np.arange(minx + spacing / 2, maxx, spacing)
+    ys = np.arange(miny + spacing / 2, maxy, spacing)
+    pts = [Point(x, y) for x in xs for y in ys]
+    pts = [p for p in pts if poly.contains(p)]
+    if not pts:
+        pts = [poly.representative_point()]
+        log.warning("Grid spacing larger than study area; using a single representative point.")
+    grid = gpd.GeoDataFrame(geometry=pts, crs=crs).to_crs(cfg["project"]["geographic_crs"])
+    grid["location_id"] = [f"WX_{i + 1:03d}" for i in range(len(grid))]
+    grid["latitude"] = grid.geometry.y.round(5)
+    grid["longitude"] = grid.geometry.x.round(5)
+    out = ensure_parent(resolve(cfg["paths"]["grid_points"]))
+    grid.to_file(out, layer="grid", driver="GPKG")
+    log.info("Wrote %d grid points (%.1f km spacing) to %s", len(grid), spacing / 1000, out)
+    log.info("Note: more points do not give finer weather resolution; many may share one model cell.")
+    return grid
+
+
+# --------------------------------------------------------------------------------------
+# API access
+# --------------------------------------------------------------------------------------
+def endpoint_for(mode: str, cfg: dict) -> str:
+    om = cfg["openmeteo"]
+    return {"live": om["forecast_url"], "historical": om["historical_forecast_url"],
+            "previous_runs": om["previous_runs_url"]}[mode]
+
+
+def hourly_variable_sets(mode: str, cfg: dict) -> list[list[str]]:
+    """Variable lists to try, richest first. Used for graceful fallback when something is unavailable."""
+    om = cfg["openmeteo"]
+    full, core = list(om["hourly"]), list(om["core_hourly"])
+    if mode == "previous_runs":
+        days = om["previous_days"]
+        f = lambda names: [f"{v}_previous_day{d}" for v in names for d in days]  # noqa: E731
+        return [f(full), f(core), f(["precipitation"])]
+    return [full, core, ["precipitation"]]
+
+
+def request_json(url: str, params: dict, cfg: dict, log):
+    om = cfg["openmeteo"]
+    last_err = None
+    for attempt in range(1, om["max_retries"] + 1):
+        try:
+            r = requests.get(url, params=params, timeout=om["timeout_seconds"])
+            if r.status_code == 400:
+                return r.status_code, r.json() if r.content else {}
+            if r.status_code == 429 or r.status_code >= 500:
+                raise requests.HTTPError(f"HTTP {r.status_code}: {r.text[:200]}")
+            r.raise_for_status()
+            return r.status_code, r.json()
+        except (requests.RequestException, ValueError) as err:
+            last_err = err
+            wait = min(60, 2 ** attempt)
+            log.warning("Request failed (attempt %d/%d): %s - retrying in %ds", attempt, om["max_retries"], err, wait)
+            time.sleep(wait)
+    raise RuntimeError(f"Open-Meteo request failed after retries: {last_err}")
+
+
+def fetch_batch(batch: pd.DataFrame, mode: str, args, cfg: dict, log):
+    """Fetch one batch of coordinates. Returns (list_of_location_dicts, hourly_variables_used)."""
+    om = cfg["openmeteo"]
+    url = endpoint_for(mode, cfg)
+    base = {
+        "latitude": ",".join(str(v) for v in batch["latitude"]),
+        "longitude": ",".join(str(v) for v in batch["longitude"]),
+        "timezone": "UTC",
+    }
+    if om.get("model"):
+        base["models"] = om["model"]
+    if mode == "live":
+        base.update({"forecast_days": om["forecast_days"], "past_days": om["past_days"]})
+    else:
+        if not (args.start_date and args.end_date):
+            raise SystemExit("--start-date and --end-date are required for this mode.")
+        base.update({"start_date": args.start_date, "end_date": args.end_date})
+
+    for variables in hourly_variable_sets(mode, cfg):
+        params = {**base, "hourly": ",".join(variables)}
+        status, payload = request_json(url, params, cfg, log)
+        if status == 400:
+            log.warning("API rejected variable set (%s): %s", variables[:3], payload.get("reason", payload))
+            continue
+        locs = payload if isinstance(payload, list) else [payload]
+        return locs, variables
+    raise RuntimeError("API rejected every variable set; check endpoint, dates and variable names.")
+
+
+# --------------------------------------------------------------------------------------
+# Normalisation
+# --------------------------------------------------------------------------------------
+PREV_RE = re.compile(r"^(?P<base>.+)_previous_day(?P<day>\d+)$")
+
+
+def normalise_response(loc_json: dict, location_id: str, req_lat: float, req_lon: float, mode: str,
+                       retrieved_at: pd.Timestamp, forecast_model: str, source_endpoint: str,
+                       raw_file: str) -> pd.DataFrame:
+    """Turn one location's JSON into the long table defined in the plan (section 3.5)."""
+    hourly = loc_json.get("hourly")
+    if not hourly or "time" not in hourly:
+        return pd.DataFrame()
+    units = loc_json.get("hourly_units", {})
+    times = pd.to_datetime(hourly["time"], utc=True)  # request used timezone=UTC
+    frames = []
+    for name, values in hourly.items():
+        if name == "time":
+            continue
+        base, day = name, None
+        m = PREV_RE.match(name)
+        if m:
+            base, day = m.group("base"), int(m.group("day"))
+        df = pd.DataFrame({"valid_time_utc": times, "value": pd.to_numeric(pd.Series(values), errors="coerce")})
+        df = df.dropna(subset=["value"])
+        df["variable"] = base
+        df["unit"] = units.get(name)
+        if mode == "previous_runs":
+            df["forecast_issue_time_utc"] = df["valid_time_utc"] - pd.Timedelta(days=day)
+            df["issue_time_source"] = "nominal_previous_day"
+        elif mode == "live":
+            df["forecast_issue_time_utc"] = retrieved_at.floor("h")
+            df["issue_time_source"] = "retrieval_proxy"
+        else:
+            df["forecast_issue_time_utc"] = pd.NaT
+            df["issue_time_source"] = "unknown_archive"
+        frames.append(df)
+    if not frames:
+        return pd.DataFrame()
+    out = pd.concat(frames, ignore_index=True)
+    out["location_id"] = location_id
+    out["latitude"] = req_lat
+    out["longitude"] = req_lon
+    out["returned_latitude"] = loc_json.get("latitude")
+    out["returned_longitude"] = loc_json.get("longitude")
+    out["retrieved_at_utc"] = retrieved_at
+    out["forecast_model"] = forecast_model
+    out["source_endpoint"] = source_endpoint
+    out["raw_file"] = raw_file
+    out["lead_hours"] = (out["valid_time_utc"] - out["forecast_issue_time_utc"]).dt.total_seconds() / 3600.0
+    cols = ["location_id", "latitude", "longitude", "returned_latitude", "returned_longitude", "retrieved_at_utc",
+            "forecast_issue_time_utc", "issue_time_source", "valid_time_utc", "forecast_model", "variable", "value",
+            "unit", "lead_hours", "source_endpoint", "raw_file"]
+    return out[cols]
+
+
+def append_weather(new: pd.DataFrame, path, log) -> pd.DataFrame:
+    ensure_parent(path)
+    if path.exists():
+        old = pd.read_parquet(path)
+        new = pd.concat([old, new], ignore_index=True)
+    # NaT in issue time must still dedupe correctly, so use a filled helper key column
+    new["_issue_key"] = new["forecast_issue_time_utc"].fillna(pd.Timestamp("1970-01-01", tz="UTC"))
+    key = [c if c != "forecast_issue_time_utc" else "_issue_key" for c in KEY_COLS]
+    before = len(new)
+    new = new.drop_duplicates(subset=key, keep="last").drop(columns="_issue_key").reset_index(drop=True)
+    new.to_parquet(path, index=False)
+    log.info("weather_hourly.parquet: %d rows (%d duplicates removed)", len(new), before - len(new))
+    return new
+
+
+def run_fetch(args, cfg: dict, log) -> None:
+    grid_path = resolve(cfg["paths"]["grid_points"])
+    if not grid_path.exists():
+        raise SystemExit("Grid not found - run 'python src/fetch_openmeteo.py grid' first.")
+    grid = gpd.read_file(grid_path)[["location_id", "latitude", "longitude"]]
+    if args.limit:
+        grid = grid.head(args.limit)
+    om = cfg["openmeteo"]
+    raw_dir = resolve(cfg["paths"]["raw_openmeteo"])
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    source_endpoint = endpoint_for(args.mode, cfg)
+    model = om.get("model") or "best_match"
+    frames, n_batches = [], int(np.ceil(len(grid) / om["batch_size"]))
+
+    for b in range(n_batches):
+        batch = grid.iloc[b * om["batch_size"]:(b + 1) * om["batch_size"]].reset_index(drop=True)
+        locs, used = fetch_batch(batch, args.mode, args, cfg, log)
+        retrieved_at = pd.Timestamp(datetime.now(timezone.utc))
+        raw_file = raw_dir / f"{args.mode}_{stamp}_batch{b + 1:03d}.json"
+        with open(raw_file, "w", encoding="utf-8") as fh:
+            json.dump({"retrieved_at_utc": retrieved_at.isoformat(), "mode": args.mode, "endpoint": source_endpoint,
+                       "variables": used, "location_ids": batch["location_id"].tolist(), "response": locs}, fh)
+        if len(locs) != len(batch):
+            raise RuntimeError(f"Expected {len(batch)} locations, API returned {len(locs)}.")
+        for row, loc in zip(batch.itertuples(index=False), locs):
+            df = normalise_response(loc, row.location_id, row.latitude, row.longitude, args.mode, retrieved_at,
+                                    model, source_endpoint, str(raw_file.relative_to(resolve("."))))
+            if df.empty:
+                log.warning("No hourly data returned for %s", row.location_id)
+            else:
+                frames.append(df)
+        log.info("Batch %d/%d done (%d locations, %d variables)", b + 1, n_batches, len(batch), len(used))
+        time.sleep(om["sleep_seconds"])
+
+    if not frames:
+        raise RuntimeError("No weather data collected.")
+    new = pd.concat(frames, ignore_index=True)
+    # Gate G1 quick checks
+    log.info("Variables collected: %s", sorted(new["variable"].unique()))
+    log.info("Units: %s", new.groupby("variable")["unit"].first().to_dict())
+    log.info("Valid time range (UTC): %s -> %s", new["valid_time_utc"].min(), new["valid_time_utc"].max())
+    miss = [v for v in om["hourly"] if v not in set(new["variable"])]
+    if miss:
+        log.warning("Variables not returned (optional features will be NaN): %s", miss)
+    append_weather(new, resolve(cfg["paths"]["processed"]) / "weather_hourly.parquet", log)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("command", choices=["grid", "fetch"])
+    ap.add_argument("--mode", choices=["live", "previous_runs", "historical"], default="live")
+    ap.add_argument("--start-date", default=None)
+    ap.add_argument("--end-date", default=None)
+    ap.add_argument("--limit", type=int, default=None, help="only first N grid points (prototype test)")
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("fetch_openmeteo", cfg)
+    if args.command == "grid":
+        build_grid(cfg, log)
+    else:
+        run_fetch(args, cfg, log)
+
+
+if __name__ == "__main__":
+    main()
+
+4.6  src/build_features.py
+Static segment features (elevation, slope, relief, land-cover fractions, river distance, road context), weather-point assignment, and leakage-safe forecast features. Commands: static, forecast.
+"""Build static segment features and forecast features.
+
+Usage:
+    python src/build_features.py static                       # terrain, land cover, river, road context
+    python src/build_features.py forecast --from-labels       # forecast features at every label issue time
+    python src/build_features.py forecast --issue-time 2026-10-24T03:00:00Z      # one explicit issue time (UTC)
+    python src/build_features.py forecast --latest            # latest issue time present in weather_hourly.parquet
+
+Leakage rule: for an issue time T only forecast rows with forecast_issue_time <= T are used, and for each
+(location, variable, valid time) the latest such forecast wins. Rows with unknown issue time are ignored.
+"""
+from __future__ import annotations
+
+import argparse
+import warnings
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import rasterio
+import shapely
+from scipy import ndimage
+from scipy.spatial import cKDTree
+
+from common import ensure_parent, load_settings, resolve, setup_logging, utc
+
+SAMPLE_FRACTIONS = np.linspace(0.0, 1.0, 5)
+
+
+# --------------------------------------------------------------------------------------
+# Raster sampling helpers
+# --------------------------------------------------------------------------------------
+def sample_points(geoms: gpd.GeoSeries, fractions=SAMPLE_FRACTIONS):
+    """Return x, y arrays (n_segments, n_fractions) of points interpolated along each line."""
+    g = np.asarray(geoms.values)
+    xs, ys = [], []
+    for f in fractions:
+        pts = shapely.line_interpolate_point(g, f, normalized=True)
+        xs.append(shapely.get_x(pts))
+        ys.append(shapely.get_y(pts))
+    return np.column_stack(xs), np.column_stack(ys)
+
+
+def sample_raster(arr: np.ndarray, transform, x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Nearest-pixel sampling of a float array (NaN = invalid). Out-of-bounds -> NaN."""
+    col = np.floor((x - transform.c) / transform.a).astype(int)
+    row = np.floor((y - transform.f) / transform.e).astype(int)
+    ok = (row >= 0) & (row < arr.shape[0]) & (col >= 0) & (col < arr.shape[1])
+    out = np.full(x.shape, np.nan, dtype="float64")
+    out[ok] = arr[row[ok], col[ok]]
+    return out
+
+
+def nanmean_rows(a: np.ndarray) -> np.ndarray:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        return np.nanmean(a, axis=1)
+
+
+def disc_kernel(radius_px: int) -> np.ndarray:
+    yy, xx = np.ogrid[-radius_px:radius_px + 1, -radius_px:radius_px + 1]
+    return (xx ** 2 + yy ** 2 <= radius_px ** 2).astype("float32")
+
+
+# --------------------------------------------------------------------------------------
+# Static features
+# --------------------------------------------------------------------------------------
+def terrain_features(cfg: dict, seg: gpd.GeoDataFrame, x, y, log) -> pd.DataFrame:
+    path = resolve(cfg["paths"]["interim"]) / "dem_clip.tif"
+    with rasterio.open(path) as src:
+        dem = src.read(1).astype("float32")
+        nodata = src.nodata
+        transform = src.transform
+    if nodata is not None:
+        dem[dem == nodata] = np.nan
+    res = abs(transform.a)
+    gy, gx = np.gradient(dem, res)
+    slope = np.degrees(np.arctan(np.hypot(gx, gy)))
+    half = max(1, int(round(cfg["dem"]["relief_window_m"] / res)))
+    size = 2 * half + 1
+    hi = np.where(np.isnan(dem), -np.inf, dem)
+    lo = np.where(np.isnan(dem), np.inf, dem)
+    relief = ndimage.maximum_filter(hi, size=size) - ndimage.minimum_filter(lo, size=size)
+    relief[~np.isfinite(relief)] = np.nan
+    log.info("DEM: %.0f-%.0f m, mean slope %.1f deg", np.nanmin(dem), np.nanmax(dem), np.nanmean(slope))
+    return pd.DataFrame({
+        "elevation_m": nanmean_rows(sample_raster(dem, transform, x, y)),
+        "slope_deg": nanmean_rows(sample_raster(slope, transform, x, y)),
+        "local_relief_m": nanmean_rows(sample_raster(relief, transform, x, y)),
+    })
+
+
+def landcover_features(cfg: dict, x, y, log) -> pd.DataFrame:
+    lc_cfg = cfg["landcover"]
+    path = resolve(cfg["paths"]["interim"]) / "landcover_clip.tif"
+    with rasterio.open(path) as src:
+        lc = src.read(1)
+        transform = src.transform
+    nodata = int(lc_cfg["nodata"])
+    valid = (lc != nodata).astype("float32")
+    res = abs(transform.a)
+    kernel = disc_kernel(max(1, int(round(lc_cfg["buffer_m"] / res))))
+    denom = ndimage.convolve(valid, kernel, mode="constant", cval=0.0)
+    codes = [int(c) for c in np.unique(lc) if int(c) != nodata]
+    unknown = [c for c in codes if c not in lc_cfg["class_names"]]
+    if unknown:
+        log.warning("Land-cover codes not in settings legend (verify the product legend!): %s", unknown)
+    log.info("Land-cover classes present: %s", codes)
+    out = {}
+    for code in codes:
+        num = ndimage.convolve((lc == code).astype("float32"), kernel, mode="constant", cval=0.0)
+        frac = np.where(denom > 0, num / np.maximum(denom, 1e-6), np.nan)
+        out[f"lc_frac_{code}"] = nanmean_rows(sample_raster(frac, transform, x, y))
+    df = pd.DataFrame(out)
+
+    def total(codes_):
+        cols = [f"lc_frac_{c}" for c in codes_ if f"lc_frac_{c}" in df.columns]
+        return df[cols].sum(axis=1, min_count=1) if cols else pd.Series(0.0, index=df.index)
+
+    df["builtup_fraction"] = total(lc_cfg["builtup_codes"])
+    df["vegetation_fraction"] = total(lc_cfg["vegetation_codes"])
+    df["water_fraction"] = total(lc_cfg["water_codes"])
+    df["other_fraction"] = (1.0 - df[["builtup_fraction", "vegetation_fraction", "water_fraction"]].sum(axis=1)).clip(lower=0)
+    return df
+
+
+def river_distance(cfg: dict, seg: gpd.GeoDataFrame, boundary: gpd.GeoDataFrame, log) -> pd.Series:
+    path = resolve(cfg["inputs"]["rivers_shapefile"])
+    if not path.exists():
+        log.warning("Rivers layer not found (%s): distance_to_river_m will be NaN.", path)
+        return pd.Series(np.nan, index=seg.index)
+    rivers = gpd.read_file(path)
+    if "fclass" in rivers.columns:
+        rivers = rivers[rivers["fclass"].isin(cfg["rivers"]["keep_fclass"])]
+    rivers = rivers.to_crs(seg.crs)
+    rivers = rivers[rivers.intersects(boundary.buffer(5000).iloc[0])]
+    if rivers.empty:
+        log.warning("No river features near the study area: distance_to_river_m will be NaN.")
+        return pd.Series(np.nan, index=seg.index)
+    joined = gpd.sjoin_nearest(seg[["geometry"]], rivers[["geometry"]], how="left", distance_col="d")
+    joined = joined[~joined.index.duplicated(keep="first")]
+    log.info("River distance (m): median %.0f, max %.0f", joined["d"].median(), joined["d"].max())
+    return joined["d"].reindex(seg.index)
+
+
+def build_static(cfg: dict, log) -> pd.DataFrame:
+    interim = resolve(cfg["paths"]["interim"])
+    seg = gpd.read_file(interim / "road_segments.gpkg", layer="segments")
+    boundary = gpd.read_file(interim / "nairobi_boundary.gpkg", layer="boundary")
+    x, y = sample_points(seg.geometry)
+    terr = terrain_features(cfg, seg, x, y, log)
+    lcf = landcover_features(cfg, x, y, log)
+    cent = seg.geometry.centroid
+    cent_wgs = gpd.GeoSeries(cent, crs=seg.crs).to_crs(cfg["project"]["geographic_crs"])
+
+    df = pd.DataFrame({"segment_id": seg["segment_id"].values})
+    if "osm_id" in seg.columns:
+        df["osm_id"] = seg["osm_id"].values
+    if "name" in seg.columns:
+        df["road_name"] = seg["name"].values
+    df["road_class"] = seg["fclass"].values if "fclass" in seg.columns else "unknown"
+    df["segment_length_m"] = seg["segment_length_m"].values
+    df["centroid_x"] = cent.x.values
+    df["centroid_y"] = cent.y.values
+    df["centroid_lon"] = cent_wgs.x.values
+    df["centroid_lat"] = cent_wgs.y.values
+    df = pd.concat([df, terr, lcf], axis=1)
+    df["distance_to_river_m"] = river_distance(cfg, seg, boundary, log).values
+    # Missing tags are NOT proof of absence: keep NaN when the column does not exist
+    for tag, col in (("bridge", "is_bridge"), ("tunnel", "is_tunnel")):
+        df[col] = (seg[tag].astype(str).str.upper().eq("T").astype(float).values if tag in seg.columns else np.nan)
+    df["surface"] = seg["surface"].values if "surface" in seg.columns else None
+
+    out = ensure_parent(resolve(cfg["paths"]["processed"]) / "static_segment_features.parquet")
+    df.to_parquet(out, index=False)
+    log.info("Static features: %d segments x %d columns -> %s", len(df), df.shape[1], out)
+    log.info("Missing share per feature:\n%s", df.isna().mean().round(3).to_string())
+    return df
+
+
+# --------------------------------------------------------------------------------------
+# Weather location assignment
+# --------------------------------------------------------------------------------------
+def assign_weather_points(cfg: dict, static: pd.DataFrame, log) -> pd.DataFrame:
+    grid = gpd.read_file(resolve(cfg["paths"]["grid_points"])).to_crs(cfg["project"]["working_crs"])
+    tree = cKDTree(np.column_stack([grid.geometry.x, grid.geometry.y]))
+    dist, idx = tree.query(np.column_stack([static["centroid_x"], static["centroid_y"]]))
+    mapping = pd.DataFrame({
+        "segment_id": static["segment_id"].values,
+        "weather_location_id": grid["location_id"].values[idx],
+        "weather_distance_m": dist.round(1),
+    })
+    out = ensure_parent(resolve(cfg["paths"]["processed"]) / "segment_weather_map.parquet")
+    mapping.to_parquet(out, index=False)
+    log.info("Assigned %d segments to %d weather points (max distance %.0f m)",
+             len(mapping), mapping["weather_location_id"].nunique(), dist.max())
+    return mapping
+
+
+# --------------------------------------------------------------------------------------
+# Forecast features
+# --------------------------------------------------------------------------------------
+def compute_forecast_features(weather: pd.DataFrame, issue_times, cfg: dict, log) -> pd.DataFrame:
+    fc = cfg["forecast_features"]
+    W, S, A = fc["window_hours"], fc["short_window_hours"], fc["antecedent_hours"]
+    thr, min_cov = fc["wet_hour_threshold_mm"], fc["min_hour_coverage"]
+    w = weather.dropna(subset=["forecast_issue_time_utc"]).copy()
+    if len(w) < len(weather):
+        log.warning("Ignored %d weather rows with unknown issue time (archive mode) - not valid for strict "
+                    "24 h forecast evaluation.", len(weather) - len(w))
+    rows = []
+    for T in sorted({utc(t) for t in issue_times}):
+        sub = w[(w["valid_time_utc"] >= T - pd.Timedelta(hours=A)) &
+                (w["valid_time_utc"] < T + pd.Timedelta(hours=W)) &
+                (w["forecast_issue_time_utc"] <= T)]
+        if sub.empty:
+            log.warning("No usable forecast rows for issue time %s", T)
+            continue
+        sub = sub.sort_values("forecast_issue_time_utc").drop_duplicates(
+            ["location_id", "variable", "valid_time_utc"], keep="last")
+        piv = sub.pivot_table(index=["location_id", "valid_time_utc"], columns="variable", values="value",
+                              aggfunc="last").reset_index()
+        issue_max = sub.groupby("location_id")["forecast_issue_time_utc"].max()
+        piv["h"] = (piv["valid_time_utc"] - T).dt.total_seconds() / 3600.0
+        fut = piv[(piv["h"] >= 0) & (piv["h"] < W)]
+        ante = piv[piv["h"] < 0]
+        locs = pd.Index(sorted(piv["location_id"].unique()), name="location_id")
+        feat = pd.DataFrame(index=locs)
+
+        if "precipitation" in fut.columns:
+            p = fut.dropna(subset=["precipitation"])
+            g = p.groupby("location_id")["precipitation"]
+            feat["n_hours_24h"] = g.size()
+            feat["rain_fcst_next_24h_mm"] = g.sum()
+            feat["max_hourly_precip_mm"] = g.max()
+            feat["wet_hours_count"] = p[p["precipitation"] >= thr].groupby("location_id").size()
+            p6 = p[p["h"] < S]
+            feat["n_hours_6h"] = p6.groupby("location_id").size()
+            feat["rain_fcst_next_6h_mm"] = p6.groupby("location_id")["precipitation"].sum()
+            if "precipitation" in ante.columns:
+                pa = ante.dropna(subset=["precipitation"])
+                ga = pa.groupby("location_id")["precipitation"]
+                feat["n_hours_ante"] = ga.size()
+                feat["antecedent_fcst_prev_24h_mm"] = ga.sum()
+        if "precipitation_probability" in fut.columns:
+            feat["precipitation_probability_max"] = fut.groupby("location_id")["precipitation_probability"].max()
+
+        for col in ["n_hours_24h", "n_hours_6h", "n_hours_ante", "rain_fcst_next_24h_mm", "max_hourly_precip_mm",
+                    "wet_hours_count", "rain_fcst_next_6h_mm", "antecedent_fcst_prev_24h_mm",
+                    "precipitation_probability_max"]:
+            if col not in feat.columns:
+                feat[col] = np.nan
+        feat["wet_hours_count"] = feat["wet_hours_count"].where(feat["n_hours_24h"].notna(), np.nan)
+        feat.loc[feat["n_hours_24h"].notna() & feat["wet_hours_count"].isna(), "wet_hours_count"] = 0
+
+        # coverage rules: incomplete windows give NaN features and a quality flag
+        bad24 = feat["n_hours_24h"].fillna(0) < min_cov * W
+        bad6 = feat["n_hours_6h"].fillna(0) < min_cov * S
+        badA = feat["n_hours_ante"].fillna(0) < min_cov * A
+        for c in ["rain_fcst_next_24h_mm", "max_hourly_precip_mm", "wet_hours_count"]:
+            feat.loc[bad24, c] = np.nan
+        feat.loc[bad6, "rain_fcst_next_6h_mm"] = np.nan
+        feat.loc[badA, "antecedent_fcst_prev_24h_mm"] = np.nan
+        feat["data_quality_flag"] = np.where(bad24, "INCOMPLETE_WEATHER", "OK")
+        feat["max_issue_time_used_utc"] = issue_max.reindex(locs)
+        feat["forecast_issue_time_utc"] = T
+        rows.append(feat.reset_index())
+    if not rows:
+        raise RuntimeError("No forecast features could be computed - check weather_hourly.parquet.")
+    out = pd.concat(rows, ignore_index=True)
+    out = out.rename(columns={"location_id": "weather_location_id"})
+    # Gate G5 leakage assertion
+    assert (out["max_issue_time_used_utc"] <= out["forecast_issue_time_utc"]).all(), "Leakage: future issue time used"
+    return out
+
+
+def run_forecast(args, cfg: dict, log) -> pd.DataFrame:
+    processed = resolve(cfg["paths"]["processed"])
+    static = pd.read_parquet(processed / "static_segment_features.parquet")
+    assign_weather_points(cfg, static, log)
+    weather = pd.read_parquet(processed / "weather_hourly.parquet")
+    if args.from_labels:
+        labels = pd.read_parquet(processed / "labels.parquet")
+        issue_times = labels["forecast_issue_time_utc"].dropna().unique()
+    elif args.issue_time:
+        issue_times = [utc(args.issue_time)]
+    elif args.latest:
+        wl = weather.dropna(subset=["forecast_issue_time_utc"])
+        issue_times = [wl["forecast_issue_time_utc"].max()]
+    else:
+        raise SystemExit("Choose one of --from-labels, --issue-time or --latest.")
+    feats = compute_forecast_features(weather, issue_times, cfg, log)
+    out = ensure_parent(processed / ("forecast_features.parquet" if args.from_labels else "forecast_features_live.parquet"))
+    feats.to_parquet(out, index=False)
+    log.info("Forecast features: %d rows (%d issue times) -> %s", len(feats), feats["forecast_issue_time_utc"].nunique(), out)
+    log.info("Share flagged INCOMPLETE_WEATHER: %.3f", (feats["data_quality_flag"] != "OK").mean())
+    return feats
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("command", choices=["static", "forecast"])
+    ap.add_argument("--from-labels", action="store_true")
+    ap.add_argument("--issue-time", default=None)
+    ap.add_argument("--latest", action="store_true")
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("build_features", cfg)
+    if args.command == "static":
+        static = build_static(cfg, log)
+        if resolve(cfg["paths"]["grid_points"]).exists():
+            assign_weather_points(cfg, static, log)
+    else:
+        run_forecast(args, cfg, log)
+
+
+if __name__ == "__main__":
+    main()
+
+4.7  src/build_hazard_labels.py
+PRIMARY. Turns the FastFlood hazard cells (levels 0-2) into Positive / Negative / Unknown road-segment labels, a continuous susceptibility_score and exposure columns, with overlap and coverage checks, label provenance and spatial blocks (gate G4h).
+"""Primary label source: turn the flood-hazard cell dataset into road-segment labels.
+
+Input columns (names configurable in settings.yaml -> hazard.columns):
+    latitude, longitude, lat_min, lat_max, lon_min, lon_max, flood_hazard
+Each row is one 100 x 100 m cell with a modelled flood-hazard category (flood depth). The data are FastFlood
+MODEL OUTPUT (SPACE4ALL; Copernicus DEM, ESA WorldCover, SoilGrids, TAHMO rainfall; no drainage network, no
+calibration), not observed flooding, and the file has NO date or time. The labels therefore describe modelled
+susceptibility, and they are also exposure features (max_hazard_value, hazard_pos_fraction) for every segment
+that can be tested against observed events.
+
+Usage:
+    python src/build_hazard_labels.py
+
+Rules (all thresholds in settings.yaml):
+    - cells are overlaid on the road segments and the length of each segment inside positive / negative cells
+      is measured;
+    - Unknown: segment not covered by mapped cells (covered share < min_coverage), conflicting cell values, or
+      0 treated as "no information" (hazard.treat_zero_as_negative: false). Unknown is never turned into 0;
+    - Positive: positive share of covered length >= positive_fraction_min;
+    - Negative: positive share == 0 (when zero is a confirmed negative);
+    - Mixed: in between, handled by mixed_policy (default: excluded).
+Outputs: data/processed/hazard_labels.parquet, data/interim/hazard_cells.gpkg (for QGIS checks),
+         outputs/tables/hazard_label_summary.csv
+"""
+from __future__ import annotations
+
+import argparse
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import shapely
+from shapely.geometry import box
+
+from common import ensure_parent, load_settings, resolve, setup_logging
+
+
+def read_table(path) -> pd.DataFrame:
+    suffix = path.suffix.lower()
+    if suffix == ".parquet":
+        return pd.read_parquet(path)
+    with open(path, "r", encoding="utf-8-sig") as fh:
+        header = fh.readline()
+    sep = "\t" if header.count("\t") >= header.count(",") and "\t" in header else ","
+    return pd.read_csv(path, sep=sep, encoding="utf-8-sig")
+
+
+def overlap_report(cells: gpd.GeoDataFrame, log, tol_m2: float = 1.0) -> None:
+    """Measure real overlap between cells. Coordinate rounding makes neighbours overlap by centimetres, which is harmless."""
+    a, b = cells.sindex.query(cells.geometry.values, predicate="intersects")
+    keep = a < b
+    a, b = a[keep], b[keep]
+    if len(a) == 0:
+        log.info("Cell overlap: none.")
+        return
+    ov = shapely.area(shapely.intersection(cells.geometry.values[a], cells.geometry.values[b]))
+    big = ov > tol_m2
+    total = float(cells.geometry.area.sum())
+    log.info("Cell overlap: %d touching pairs, %d overlap by more than %.0f m2; overlapping area %.1f m2 (%.5f%% of all cell area).",
+             len(a), int(big.sum()), tol_m2, float(ov.sum()), 100 * float(ov.sum()) / total)
+    if big.sum() > 0.001 * len(cells):
+        log.warning("Substantial cell overlap: lengths may be double counted. Inspect hazard_cells.gpkg.")
+    else:
+        log.info("Overlaps are negligible (typically coordinate rounding); no action needed.")
+
+
+def load_cells(cfg: dict, log, path=None, clip: bool = True) -> gpd.GeoDataFrame:
+    hz = cfg["hazard"]
+    path = path or resolve(cfg["inputs"]["hazard_dataset"])
+    if not path.exists():
+        raise FileNotFoundError(f"Hazard dataset not found: {path}")
+    col = hz["columns"]
+    raw = read_table(path)
+    raw.columns = [str(c).strip() for c in raw.columns]
+    need = [col["latitude"], col["longitude"], col["value"]]
+    missing = [c for c in need if c not in raw.columns]
+    if missing:
+        raise KeyError(f"Hazard dataset is missing columns {missing}; found {list(raw.columns)}. "
+                       "Adjust hazard.columns in settings.yaml.")
+    df = pd.DataFrame({"latitude": pd.to_numeric(raw[col["latitude"]], errors="coerce"),
+                       "longitude": pd.to_numeric(raw[col["longitude"]], errors="coerce"),
+                       "value": pd.to_numeric(raw[col["value"]], errors="coerce")})
+    bbox_cols = ["lat_min", "lat_max", "lon_min", "lon_max"]
+    has_bbox = all(col[c] in raw.columns for c in bbox_cols)
+    for c in bbox_cols:
+        df[c] = pd.to_numeric(raw[col[c]], errors="coerce") if has_bbox else np.nan
+    log.info("Hazard dataset: %d rows, bbox columns present: %s", len(df), has_bbox)
+
+    bad = df[["latitude", "longitude", "value"]].isna().any(axis=1) | ~df["latitude"].between(-90, 90) \
+        | ~df["longitude"].between(-180, 180)
+    if bad.any():
+        log.warning("Dropping %d rows with missing/invalid latitude, longitude or hazard value.", int(bad.sum()))
+    df = df[~bad].copy()
+
+    vals = df["value"].round(6).value_counts().sort_index()
+    log.info("flood_hazard value counts:\n%s", vals.head(15).to_string())
+    levels = {float(k): v for k, v in hz.get("levels", {}).items()}
+    for v, n in vals.items():
+        log.info("  level %s (%s): %d cells", v, levels.get(float(v), "NOT IN LEGEND"), n)
+    unknown_levels = sorted(set(vals.index) - set(levels))
+    if levels and unknown_levels:
+        log.warning("flood_hazard values not in the settings legend: %s - check hazard.levels.", unknown_levels)
+    log.info("Hazard cells = flood_hazard >= %s; deep cells = flood_hazard >= %s", hz["positive_threshold"],
+             hz.get("high_threshold", "n/a"))
+
+    # same cell listed twice: identical rows collapse, conflicting values are dropped (Unknown)
+    key = ["latitude", "longitude"]
+    nuniq = df.groupby(key)["value"].transform("nunique")
+    conflict = nuniq > 1
+    if conflict.any():
+        log.warning("%d rows belong to cells with conflicting hazard values; they are dropped.", int(conflict.sum()))
+    df = df[~conflict].drop_duplicates(subset=key).reset_index(drop=True)
+    df["cell_id"] = [f"CELL_{i + 1:07d}" for i in range(len(df))]
+    df["hazard_pos"] = (df["value"] >= hz["positive_threshold"]).astype(int)
+    df["hazard_high"] = (df["value"] >= hz.get("high_threshold", np.inf)).astype(int)
+
+    crs_w = cfg["project"]["working_crs"]
+    valid_box = has_bbox & (df["lat_min"] < df["lat_max"]) & (df["lon_min"] < df["lon_max"]) & \
+        (df["lat_min"] <= df["latitude"]) & (df["latitude"] <= df["lat_max"]) & \
+        (df["lon_min"] <= df["longitude"]) & (df["longitude"] <= df["lon_max"])
+    if has_bbox and (~valid_box).any():
+        log.warning("%d rows have an inconsistent bounding box; a square of +/-%d m around the point is used.",
+                    int((~valid_box).sum()), hz["fallback_half_size_m"])
+    parts = []
+    if valid_box.any():
+        v = df[valid_box]
+        g = gpd.GeoDataFrame(v, geometry=[box(a, b, c, d) for a, b, c, d in
+                                          zip(v["lon_min"], v["lat_min"], v["lon_max"], v["lat_max"])],
+                             crs=cfg["project"]["geographic_crs"]).to_crs(crs_w)
+        parts.append(g)
+    if (~valid_box).any():
+        f = df[~valid_box]
+        pts = gpd.GeoSeries(gpd.points_from_xy(f["longitude"], f["latitude"]), index=f.index,
+                            crs=cfg["project"]["geographic_crs"]).to_crs(crs_w)
+        parts.append(gpd.GeoDataFrame(f, geometry=pts.buffer(hz["fallback_half_size_m"], cap_style=3), crs=crs_w))
+    cells = pd.concat(parts, ignore_index=True)
+    cells = gpd.GeoDataFrame(cells, geometry="geometry", crs=crs_w)
+
+    if clip:
+        boundary = gpd.read_file(resolve(cfg["paths"]["interim"]) / "nairobi_boundary.gpkg", layer="boundary")
+        inside = cells.intersects(boundary.geometry.iloc[0])
+        log.info("%d of %d cells intersect the study area; %d are outside and ignored.", int(inside.sum()),
+                 len(cells), int((~inside).sum()))
+        cells = cells[inside].reset_index(drop=True)
+    if cells.empty:
+        raise ValueError("No hazard cells fall inside the study area - check lat/lon order and CRS.")
+    area = cells.geometry.area
+    log.info("Cell area (m2): median %.0f, min %.0f, max %.0f; total %.1f km2", area.median(), area.min(), area.max(),
+             area.sum() / 1e6)
+    overlap_report(cells, log)
+    log.info("Positive cells: %d (%.1f%%)", int(cells["hazard_pos"].sum()), 100 * cells["hazard_pos"].mean())
+    return cells
+
+
+def label_segments(cfg: dict, cells: gpd.GeoDataFrame, log) -> pd.DataFrame:
+    hz = cfg["hazard"]
+    seg = gpd.read_file(resolve(cfg["paths"]["interim"]) / "road_segments.gpkg", layer="segments")
+    seg = seg[["segment_id", "segment_length_m", "geometry"]]
+    inter = gpd.overlay(seg[["segment_id", "geometry"]], cells[["cell_id", "hazard_pos", "hazard_high", "value", "geometry"]],
+                        how="intersection", keep_geom_type=True)
+    inter["len"] = inter.geometry.length
+    inter = inter[inter["len"] > hz.get("min_overlap_m", 0.5)]
+    g = inter.groupby("segment_id")
+    stats = pd.DataFrame({
+        "n_cells": g["cell_id"].nunique(),
+        "covered_length_m": g["len"].sum(),
+        "pos_length_m": inter[inter["hazard_pos"] == 1].groupby("segment_id")["len"].sum(),
+        "high_length_m": inter[inter["hazard_high"] == 1].groupby("segment_id")["len"].sum(),
+        "max_hazard_value": g["value"].max(),
+        "mean_hazard_value": g.apply(lambda d: np.average(d["value"], weights=d["len"]), include_groups=False),
+    }).reset_index()
+    out = seg.drop(columns="geometry").merge(stats, on="segment_id", how="left")
+    out["n_cells"] = out["n_cells"].fillna(0).astype(int)
+    out["covered_length_m"] = out["covered_length_m"].fillna(0.0)
+    out["pos_length_m"] = out["pos_length_m"].fillna(0.0)
+    out["high_length_m"] = out["high_length_m"].fillna(0.0)
+    out["covered_fraction"] = (out["covered_length_m"] / out["segment_length_m"]).clip(upper=1.0)
+    out["hazard_pos_fraction"] = np.where(out["covered_length_m"] > 0, out["pos_length_m"] / out["covered_length_m"].replace(0, np.nan), np.nan)
+
+    out["hazard_high_fraction"] = np.where(out["covered_length_m"] > 0, out["high_length_m"] / out["covered_length_m"].replace(0, np.nan), np.nan)
+
+    status = pd.Series("unknown", index=out.index)
+    reason = pd.Series("", index=out.index)
+    covered = out["covered_fraction"] >= hz["min_coverage"]
+    # segments that merely touch a cell edge (overlap below min_overlap_m) intersect the footprint but have no coverage
+    touched = set(gpd.sjoin(seg[["segment_id", "geometry"]], cells[["geometry"]], predicate="intersects")["segment_id"])
+    reason[~covered] = np.where(out.loc[~covered, "n_cells"] == 0,
+                                np.where(out.loc[~covered, "segment_id"].isin(touched), "touch_only_overlap_below_min",
+                                         "no_hazard_cells"), "insufficient_coverage")
+    frac = out["hazard_pos_fraction"]
+    pos = covered & (frac >= hz["positive_fraction_min"])
+    zero = covered & (frac == 0)
+    mixed = covered & (frac > 0) & (frac < hz["positive_fraction_min"])
+    status[pos] = "positive"
+    if hz["treat_zero_as_negative"]:
+        status[zero] = "negative"
+    else:
+        reason[zero] = "zero_means_no_information"
+    policy = hz["mixed_policy"]
+    if policy == "positive":
+        status[mixed] = "positive"
+    elif policy == "negative":
+        status[mixed] = "negative"
+    else:
+        reason[mixed] = "mixed_cells"
+    max_level = max([float(k) for k in hz.get("levels", {1: 0})] + [1.0]) if hz.get("levels") else float(cells["value"].max())
+    # continuous score (length-weighted mean level / highest level): defined for every covered segment, incl. mixed
+    out["susceptibility_score"] = (out["mean_hazard_value"] / max_level).where(covered)
+    out["label_source"] = np.where(covered, "fastflood_original", "none")
+    out["label_status"] = status
+    out["unknown_reason"] = np.where(status == "unknown", reason, "")
+    n_mixed = int(mixed.sum())
+    if n_mixed:
+        log.info("'mixed_cells' = covered segments with 0 < hazard share < %.2f (%d). They are mostly low-hazard with a "
+                 "minority of hazard cells, not conflicting data. Options: mixed_policy negative/positive, or model "
+                 "susceptibility_score directly.", hz["positive_fraction_min"], n_mixed)
+    out["hazard_label"] = status.map({"positive": 1.0, "negative": 0.0})
+
+    cent = gpd.GeoSeries(seg.geometry.centroid, crs=seg.crs)
+    bs = hz["block_size_m"]
+    out["spatial_block"] = [f"B_{int(np.floor(x / bs))}_{int(np.floor(y / bs))}" for x, y in zip(cent.x, cent.y)]
+    return out
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("build_hazard_labels", cfg)
+    hz = cfg["hazard"]
+
+    cells = load_cells(cfg, log)
+    cells.to_file(ensure_parent(resolve(cfg["paths"]["interim"]) / "hazard_cells.gpkg"), layer="cells", driver="GPKG")
+    labels = label_segments(cfg, cells, log)
+    labels.to_parquet(ensure_parent(resolve(cfg["paths"]["processed"]) / "hazard_labels.parquet"), index=False)
+
+    summ = labels.groupby("label_status").agg(segments=("segment_id", "size"),
+                                              km=("segment_length_m", lambda s: s.sum() / 1000)).reset_index()
+    summ.to_csv(ensure_parent(resolve(cfg["paths"]["outputs"]) / "tables" / "hazard_label_summary.csv"), index=False)
+    log.info("Segment label summary:\n%s", summ.round(1).to_string(index=False))
+    log.info("Unknown reasons:\n%s", labels.loc[labels["label_status"] == "unknown", "unknown_reason"].value_counts().to_string())
+
+    # Gate G4h
+    n_pos = int((labels["label_status"] == "positive").sum())
+    n_neg = int((labels["label_status"] == "negative").sum())
+    pos_blocks = labels.loc[labels["label_status"] == "positive", "spatial_block"].nunique()
+    if n_pos < hz["min_positive_segments"] or n_neg < hz["min_negative_segments"]:
+        log.warning("GATE G4h WARNING: %d positive and %d negative segments (need >= %d / %d).",
+                    n_pos, n_neg, hz["min_positive_segments"], hz["min_negative_segments"])
+    if pos_blocks < hz["min_positive_blocks"]:
+        log.warning("GATE G4h WARNING: positives occur in only %d spatial blocks (need >= %d); spatial "
+                    "validation will be weak.", pos_blocks, hz["min_positive_blocks"])
+    log.info("Prevalence among labelled segments: %.1f%%", 100 * n_pos / max(1, n_pos + n_neg))
+    log.info("These labels are MODELLED (FastFlood) static hazard labels with no timestamps; they cannot validate 24 h forecasts "
+             "and are not proof that roads flooded. Test them against observed events when you have them.")
+
+
+if __name__ == "__main__":
+    main()
+
+4.8  src/check_coverage.py
+NEW. Checks the study boundary and the hazard-cell footprint: boundary area and shape, area and roads without cells, QGIS layers, a map, and a reconciliation with the label script.
+"""Diagnose how well the hazard cells cover the study boundary and the road network.
+
+Answers: is the boundary the real county, how much of it has hazard cells, which road segments lie outside the
+cell footprint, and does that match the 'no_hazard_cells' count from build_hazard_labels.py?
+
+Usage (project layout from settings.yaml):
+    python src/check_coverage.py
+Any input can be overridden, e.g. for a different folder layout:
+    python src/check_coverage.py --segments D:\\floodguard\\data\\nairobi_roads.gpkg --segments-layer segments ^
+        --boundary D:\\floodguard\\data\\nairobi_boundary.gpkg --boundary-layer boundary --cells D:\\floodguard\\data\\hazard.csv
+Outputs: outputs/tables/coverage_report.csv, outputs/maps/coverage.png,
+         data/interim/uncovered_area.gpkg and data/interim/uncovered_segments.gpkg (open both in QGIS)
+"""
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+import geopandas as gpd
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import shapely  # noqa: E402
+
+from build_hazard_labels import load_cells  # noqa: E402
+from common import boundary_sanity, ensure_parent, load_settings, resolve, setup_logging  # noqa: E402
+
+
+def read_layer(path, layer, crs):
+    gdf = gpd.read_file(path, layer=layer) if layer else gpd.read_file(path)
+    if gdf.crs is None:
+        raise ValueError(f"{path} has no CRS.")
+    return gdf.to_crs(crs)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--config", default=None)
+    ap.add_argument("--segments", default=None)
+    ap.add_argument("--segments-layer", default="segments")
+    ap.add_argument("--boundary", default=None)
+    ap.add_argument("--boundary-layer", default="boundary")
+    ap.add_argument("--cells", default=None)
+    ap.add_argument("--close-gaps-m", type=float, default=1.0, help="close sub-metre gaps between cells (rounding)")
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("check_coverage", cfg)
+    crs = cfg["project"]["working_crs"]
+    interim = resolve(cfg["paths"]["interim"])
+    out_tab = ensure_parent(resolve(cfg["paths"]["outputs"]) / "tables" / "coverage_report.csv")
+
+    bnd = read_layer(args.boundary or interim / "nairobi_boundary.gpkg", args.boundary_layer, crs)
+    boundary = shapely.make_valid(bnd.geometry.union_all())
+    report = dict(boundary_sanity(boundary, cfg, log))
+
+    cells = load_cells(cfg, log, path=Path(args.cells) if args.cells else None, clip=False)
+    log.info("Cells: %d, total area %.1f km2", len(cells), cells.geometry.area.sum() / 1e6)
+    g = args.close_gaps_m
+    footprint = shapely.union_all(cells.geometry.values)
+    if g > 0:
+        footprint = footprint.buffer(g).buffer(-g)
+    footprint = shapely.make_valid(footprint)
+
+    b_area = boundary.area / 1e6
+    inside = footprint.intersection(boundary)
+    in_km2 = inside.area / 1e6
+    uncovered = boundary.difference(footprint)
+    report.update({
+        "cells_total": len(cells),
+        "cells_total_area_km2": cells.geometry.area.sum() / 1e6,
+        "footprint_area_km2": footprint.area / 1e6,
+        "footprint_inside_boundary_km2": in_km2,
+        "boundary_without_cells_km2": uncovered.area / 1e6,
+        "boundary_covered_pct": 100 * in_km2 / b_area,
+        "footprint_outside_boundary_km2": (footprint.area - inside.area) / 1e6,
+    })
+    log.info("Boundary %.1f km2: %.1f km2 (%.1f%%) covered by cells, %.1f km2 without cells; cells outside boundary: %.1f km2",
+             b_area, in_km2, report["boundary_covered_pct"], report["boundary_without_cells_km2"],
+             report["footprint_outside_boundary_km2"])
+
+    parts = gpd.GeoDataFrame(geometry=[uncovered], crs=crs).explode(index_parts=False)
+    parts["area_km2"] = parts.geometry.area / 1e6
+    parts = parts.sort_values("area_km2", ascending=False).reset_index(drop=True)
+    parts.to_file(ensure_parent(interim / "uncovered_area.gpkg"), layer="uncovered", driver="GPKG")
+    log.info("Largest uncovered parts (km2): %s", parts["area_km2"].head(5).round(1).tolist())
+
+    seg = read_layer(args.segments or interim / "road_segments.gpkg", args.segments_layer, crs)
+    if "segment_id" not in seg.columns:
+        seg["segment_id"] = [f"SEG_{i:07d}" for i in range(len(seg))]
+    seg["length_m"] = seg.geometry.length
+    seg_inside_b = seg.intersects(boundary)
+    hit = seg.intersects(footprint)
+    # length-based coverage: share of each segment's length inside the footprint
+    cov_len = shapely.length(shapely.intersection(seg.geometry.values, footprint)) / seg["length_m"].replace(0, np.nan)
+    seg["footprint_cover"] = cov_len
+    total_km = seg["length_m"].sum() / 1000
+    out_mask = ~hit
+    low_mask = (seg["footprint_cover"] < cfg["hazard"]["min_coverage"]) & hit
+    report.update({
+        "segments_total": len(seg), "road_km_total": total_km,
+        "segments_outside_boundary": int((~seg_inside_b).sum()),
+        "segments_intersecting_footprint": int(hit.sum()),
+        "segments_outside_footprint": int(out_mask.sum()),
+        "segments_outside_footprint_pct": 100 * out_mask.mean(),
+        "road_km_outside_footprint": seg.loc[out_mask, "length_m"].sum() / 1000,
+        "segments_below_min_coverage_but_touching": int(low_mask.sum()),
+    })
+    log.info("Segments: %d (%.0f km). Outside boundary: %d. Intersecting footprint: %d. Outside footprint: %d (%.2f%%, %.0f km). "
+             "Touching but below min_coverage: %d",
+             len(seg), total_km, report["segments_outside_boundary"], report["segments_intersecting_footprint"],
+             report["segments_outside_footprint"], report["segments_outside_footprint_pct"],
+             report["road_km_outside_footprint"], report["segments_below_min_coverage_but_touching"])
+    if "highway" in seg.columns or "fclass" in seg.columns:
+        col = "fclass" if "fclass" in seg.columns else "highway"
+        by = seg.assign(outside=out_mask).groupby(col)["outside"].agg(["size", "mean"]).sort_values("size", ascending=False)
+        log.info("Share of segments outside the footprint by road class (top 8):\n%s", by.head(8).round(3).to_string())
+    seg.loc[out_mask, ["segment_id", "geometry"]].to_file(ensure_parent(interim / "uncovered_segments.gpkg"),
+                                                          layer="uncovered_segments", driver="GPKG")
+
+    # Reconcile with the production labels
+    hl_path = resolve(cfg["paths"]["processed"]) / "hazard_labels.parquet"
+    if hl_path.exists():
+        hl = pd.read_parquet(hl_path)
+        counts = hl["unknown_reason"].value_counts()
+        nh, to = int(counts.get("no_hazard_cells", 0)), int(counts.get("touch_only_overlap_below_min", 0))
+        log.info("hazard_labels.parquet: no_hazard_cells=%d, touch_only_overlap_below_min=%d; diagnostic outside footprint=%d",
+                 nh, to, report["segments_outside_footprint"])
+        diff = nh - report["segments_outside_footprint"]
+        report.update({"labels_no_hazard_cells": nh, "labels_touch_only": to, "labels_minus_diagnostic": diff})
+        if abs(diff) > 0.005 * len(seg):
+            log.warning("Label script and diagnostic disagree by %d segments: compare segment sets "
+                        "(uncovered_segments.gpkg) and check the segment inputs are the same file.", diff)
+        else:
+            log.info("The label script and the footprint test agree (difference %d).", diff)
+    else:
+        log.info("Run build_hazard_labels.py first to reconcile with the label counts.")
+
+    pd.Series(report).rename("value").to_csv(out_tab)
+    fig, ax = plt.subplots(figsize=(9, 9))
+    gpd.GeoSeries([boundary], crs=crs).boundary.plot(ax=ax, color="black", linewidth=1)
+    gpd.GeoSeries([footprint.simplify(30)], crs=crs).plot(ax=ax, color="#9ecae1", alpha=0.6)
+    seg.loc[out_mask].plot(ax=ax, color="#c0392b", linewidth=0.4)
+    ax.set_title("Hazard-cell footprint (blue) vs roads outside it (red); black = study boundary", fontsize=10)
+    ax.set_axis_off()
+    fig.savefig(ensure_parent(resolve(cfg["paths"]["outputs"]) / "maps" / "coverage.png"), dpi=140, bbox_inches="tight")
+    plt.close(fig)
+    log.info("Wrote %s, coverage.png, uncovered_area.gpkg and uncovered_segments.gpkg", out_tab.name)
+
+
+if __name__ == "__main__":
+    main()
+
+4.9  src/train_static.py
+PRIMARY. Trains the static susceptibility models H_logreg and H_rf (emulators of FastFlood) with leave-spatial-blocks-out validation, against a low-elevation rule baseline.
+"""Train and validate the static susceptibility models on the hazard-dataset labels (primary source).
+
+Usage:
+    python src/train_static.py
+    python src/train_static.py --advanced        # adds gradient-boosted trees
+
+Validation is SPATIAL: segments are grouped into blocks (hazard.block_size_m) and whole blocks are held out,
+because neighbouring road segments share the same hazard cells and would otherwise leak between train and test.
+Only static predictors are used (never coordinates, never labels). Models: H_logreg, H_rf (and H_hgb).
+Baseline: rule_low_elevation (lower elevation than the training median -> predicted hazard).
+Outputs: data/processed/hazard_modelling_table.parquet, outputs/tables/oof_static_predictions.parquet,
+         outputs/tables/feature_importance_H_rf.csv, models/H_*.joblib + .json
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime, timezone
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import GroupKFold
+
+from common import ensure_parent, load_settings, resolve, setup_logging
+from train import make_pipeline
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--advanced", action="store_true")
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("train_static", cfg)
+    seed = cfg["project"]["random_seed"]
+    proc = resolve(cfg["paths"]["processed"])
+
+    labels = pd.read_parquet(proc / "hazard_labels.parquet")
+    static = pd.read_parquet(proc / "static_segment_features.parquet")
+    labels = labels[labels["label_status"].isin(["positive", "negative"])]
+    tbl = labels.merge(static.drop(columns=["segment_length_m"], errors="ignore"), on="segment_id", how="left",
+                       validate="1:1").reset_index(drop=True)
+    tbl["flood_label"] = tbl["hazard_label"]
+    tbl.to_parquet(proc / "hazard_modelling_table.parquet", index=False)
+    if tbl["flood_label"].nunique() < 2:
+        raise SystemExit("Both positive and negative labelled segments are required (gate G4h).")
+    n_blocks = tbl["spatial_block"].nunique()
+    log.warning("The hazard labels are FastFlood MODEL output derived from DEM/land cover/soil. H_* models learn to "
+                "reproduce that model from similar inputs (an emulator). Good held-out scores show agreement with "
+                "FastFlood, NOT skill at predicting real floods. For exposure use the hazard columns directly "
+                "(max_hazard_value, hazard_pos_fraction).")
+    log.info("Training table: %d segments, %d spatial blocks, %.1f%% positive", len(tbl), n_blocks,
+             100 * tbl["flood_label"].mean())
+    if n_blocks < 3:
+        raise SystemExit("Need at least 3 spatial blocks; reduce hazard.block_size_m.")
+
+    tr = cfg["training"]
+    num = [c for c in tr["static_features"] if c in tbl.columns and tbl[c].notna().any()]
+    dropped = [c for c in tr["static_features"] if c not in num]
+    if dropped:
+        log.warning("Static features dropped (absent or entirely missing): %s", dropped)
+    cat = [c for c in tr["categorical_features"] if c in tbl.columns]
+    specs = {"H_logreg": "logreg", "H_rf": "rf"}
+    if args.advanced:
+        specs["H_hgb"] = "hgb"
+
+    n_splits = min(tr["n_splits"], n_blocks)
+    oof = []
+    for fold, (tr_i, te_i) in enumerate(GroupKFold(n_splits=n_splits).split(tbl, tbl["flood_label"], groups=tbl["spatial_block"])):
+        train, test = tbl.iloc[tr_i], tbl.iloc[te_i]
+        base = pd.DataFrame({"event_id": test["spatial_block"].values, "segment_id": test["segment_id"].values,
+                             "flood_label": test["flood_label"].values, "fold": fold})
+        ref = np.sort(train["elevation_m"].dropna().values)
+        r = base.copy()
+        r["model"] = "rule_low_elevation"
+        elev = test["elevation_m"].values
+        r["score"] = np.where(np.isnan(elev), 0.5, 1.0 - np.searchsorted(ref, np.nan_to_num(elev)) / max(1, len(ref)))
+        oof.append(r)
+        if train["flood_label"].nunique() < 2:
+            log.warning("Fold %d: one class in training data - model rows skipped.", fold)
+            continue
+        for name, kind in specs.items():
+            pipe = make_pipeline(kind, num, cat, seed).fit(train[num + cat], train["flood_label"].astype(int))
+            m = base.copy()
+            m["model"] = name
+            m["score"] = pipe.predict_proba(test[num + cat])[:, 1]
+            oof.append(m)
+        log.info("Fold %d: %d train / %d test segments, %d test blocks", fold, len(train), len(test), test["spatial_block"].nunique())
+    oof = pd.concat(oof, ignore_index=True)
+    oof.to_parquet(ensure_parent(resolve(cfg["paths"]["outputs"]) / "tables" / "oof_static_predictions.parquet"), index=False)
+
+    models_dir = resolve(cfg["paths"]["models"])
+    models_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    for name, kind in specs.items():
+        pipe = make_pipeline(kind, num, cat, seed).fit(tbl[num + cat], tbl["flood_label"].astype(int))
+        joblib.dump(pipe, models_dir / f"{name}.joblib")
+        meta = {"name": name, "model_version": f"{name.lower()}_{tr['model_version_prefix']}", "kind": kind,
+                "trained_on": "hazard_dataset", "target": "static_susceptibility",
+                "numeric_features": num, "categorical_features": cat, "trained_utc": stamp,
+                "n_rows": int(len(tbl)), "n_blocks": int(n_blocks), "positive_rate": float(tbl["flood_label"].mean()),
+                "validated": False}
+        with open(models_dir / f"{name}.json", "w", encoding="utf-8") as fh:
+            json.dump(meta, fh, indent=2)
+        log.info("Saved %s", name)
+        if kind == "rf":
+            names = pipe["pre"].get_feature_names_out()
+            imp = pd.Series(pipe["clf"].feature_importances_, index=names).sort_values(ascending=False)
+            imp.rename("importance").to_csv(resolve(cfg["paths"]["outputs"]) / "tables" / f"feature_importance_{name}.csv")
+            log.info("Top features (impurity importance, interpret with care):\n%s", imp.head(8).round(3).to_string())
+    log.info("Next: python src/evaluate.py --static")
+
+
+if __name__ == "__main__":
+    main()
+
+4.10  src/build_labels.py
+OPTIONAL dated events. Turns the reviewed event inventory into Positive / Negative / Unknown labels and assembles the modelling table with a leakage audit. Commands: labels, assemble.
+"""Build flood labels from the reviewed event inventory and assemble the modelling table.
+
+Usage:
+    python src/build_labels.py labels       # event_inventory.csv -> labels.parquet (+ label summary, gate G4)
+    python src/build_labels.py assemble     # labels + static + forecast features -> modelling_table.parquet
+
+event_inventory.csv columns (one row per observation of a road/location during an event):
+    event_id, observation_id, observed_status (flooded | not_flooded | unclear), lat, lon,
+    event_start_local, event_end_local, date_only (true/false), spatial_precision_m,
+    evidence_type, source_id, source_url, published_time_local, confidence (high|medium|low),
+    review_status (reviewed|pending|rejected), notes
+
+Rules (plan section 6):
+    Positive : flooded, reviewed, accepted confidence, precise enough, matched to a segment.
+    Negative : not_flooded with the same requirements (explicit evidence that the place was checked).
+    Unknown  : everything else. Unknown is never converted to 0, and conflicting labels become Unknown.
+Time handling: the forecast issue time is event_start minus labels.issue_lead_hours (floored to the hour);
+the target window is the 24 hours after it. Date-only reports use local midnight of that date and are
+recorded as 'daily formulation' with confidence capped at 'low' (so they are Unknown under default settings).
+"""
+from __future__ import annotations
+
+import argparse
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+
+from common import ensure_parent, load_settings, resolve, setup_logging
+
+REQUIRED = ["event_id", "observation_id", "observed_status", "lat", "lon", "event_start_local", "date_only",
+            "spatial_precision_m", "evidence_type", "source_id", "confidence", "review_status"]
+
+
+def read_inventory(cfg: dict, log) -> pd.DataFrame:
+    path = resolve(cfg["inputs"]["event_inventory"])
+    if not path.exists():
+        raise FileNotFoundError(f"Event inventory not found: {path}")
+    inv = pd.read_csv(path, dtype={"event_id": str, "observation_id": str, "source_id": str})
+    missing = [c for c in REQUIRED if c not in inv.columns]
+    if missing:
+        raise ValueError(f"event_inventory.csv is missing columns: {missing}")
+    for c in ["observed_status", "confidence", "review_status"]:
+        inv[c] = inv[c].astype(str).str.strip().str.lower()
+    inv["date_only"] = inv["date_only"].astype(str).str.strip().str.lower().isin(["true", "1", "yes"])
+    log.info("Inventory: %d observations, %d events", len(inv), inv["event_id"].nunique())
+    return inv
+
+
+def derive_times(inv: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    tz = cfg["labels"]["timezone"]
+    lead = pd.Timedelta(hours=cfg["labels"]["issue_lead_hours"])
+    start = pd.to_datetime(inv["event_start_local"]).dt.tz_localize(tz, ambiguous="NaT", nonexistent="NaT")
+    issue_local = (start - lead).dt.floor("h")
+    issue_local = issue_local.where(~inv["date_only"], start.dt.normalize())  # date-only: local midnight
+    inv = inv.copy()
+    inv["forecast_issue_time_utc"] = issue_local.dt.tz_convert("UTC")
+    inv["target_start_utc"] = inv["forecast_issue_time_utc"]
+    inv["target_end_utc"] = inv["forecast_issue_time_utc"] + pd.Timedelta(hours=24)
+    return inv
+
+
+def classify(inv: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    lab = cfg["labels"]
+    inv = inv.copy()
+    reason = pd.Series("", index=inv.index)
+    ok = pd.Series(True, index=inv.index)
+
+    def fail(mask, text):
+        nonlocal ok, reason
+        mask = mask & ok
+        reason = reason.mask(mask, text)
+        ok = ok & ~mask
+
+    fail(inv["forecast_issue_time_utc"].isna(), "bad_time")
+    fail(~inv["observed_status"].isin(["flooded", "not_flooded"]), "unclear_status")
+    if lab["require_reviewed"]:
+        fail(inv["review_status"] != "reviewed", "not_reviewed")
+    conf = inv["confidence"].where(~inv["date_only"], "low")  # date-only reports capped at low confidence
+    inv["label_confidence"] = conf
+    fail(~conf.isin(lab["accepted_confidence"]), "confidence_too_low")
+    fail(pd.to_numeric(inv["spatial_precision_m"], errors="coerce").fillna(1e9) > lab["max_spatial_precision_m"],
+         "spatial_precision_too_low")
+    inv["usable"] = ok
+    inv["unknown_reason"] = reason
+    return inv
+
+
+def match_segments(inv: pd.DataFrame, cfg: dict, log) -> pd.DataFrame:
+    seg = gpd.read_file(resolve(cfg["paths"]["interim"]) / "road_segments.gpkg", layer="segments")[["segment_id", "geometry"]]
+    pts = gpd.GeoDataFrame(inv.copy(), geometry=gpd.points_from_xy(inv["lon"], inv["lat"]), crs=cfg["project"]["geographic_crs"])
+    pts = pts.to_crs(seg.crs)
+    pts["geometry"] = pts.geometry.buffer(cfg["labels"]["match_radius_m"])
+    joined = gpd.sjoin(pts, seg, how="left", predicate="intersects").drop(columns=["index_right"])
+    n_no_match = joined.loc[joined["usable"] & joined["segment_id"].isna(), "observation_id"].nunique()
+    if n_no_match:
+        log.warning("%d usable observations had no road segment within %d m (they become Unknown).",
+                    n_no_match, cfg["labels"]["match_radius_m"])
+    return pd.DataFrame(joined.drop(columns="geometry"))
+
+
+def build_labels(cfg: dict, log) -> pd.DataFrame:
+    inv = classify(derive_times(read_inventory(cfg, log), cfg), cfg)
+    m = match_segments(inv, cfg, log)
+    m["label_status"] = np.where(m["usable"] & m["segment_id"].notna(),
+                                 np.where(m["observed_status"] == "flooded", "positive", "negative"), "unknown")
+    m.loc[(m["label_status"] == "unknown") & (m["unknown_reason"] == ""), "unknown_reason"] = "no_segment_match"
+
+    # conflicts: same event, segment and issue time with both positive and negative evidence
+    known = m[m["label_status"] != "unknown"]
+    conflict = known.groupby(["event_id", "segment_id", "forecast_issue_time_utc"])["label_status"].nunique()
+    bad = conflict[conflict > 1].index
+    if len(bad):
+        key = pd.MultiIndex.from_frame(m[["event_id", "segment_id", "forecast_issue_time_utc"]])
+        is_bad = key.isin(bad) & (m["label_status"] != "unknown")
+        m.loc[is_bad, "unknown_reason"] = "conflicting_evidence"
+        m.loc[is_bad, "label_status"] = "unknown"
+        log.warning("%d conflicting label rows reset to Unknown.", int(is_bad.sum()))
+
+    m["flood_label"] = m["label_status"].map({"positive": 1.0, "negative": 0.0})
+    m["daily_formulation"] = m["date_only"]
+    cols = ["event_id", "observation_id", "segment_id", "forecast_issue_time_utc", "target_start_utc", "target_end_utc",
+            "flood_label", "label_status", "unknown_reason", "label_confidence", "evidence_type", "source_id",
+            "daily_formulation", "spatial_precision_m"]
+    out = m[cols].drop_duplicates(subset=["event_id", "segment_id", "forecast_issue_time_utc", "label_status", "observation_id"])
+    path = ensure_parent(resolve(cfg["paths"]["processed"]) / "labels.parquet")
+    out.to_parquet(path, index=False)
+
+    summ = out.groupby(["label_status"]).agg(rows=("observation_id", "size"), events=("event_id", "nunique")).reset_index()
+    ensure_parent(resolve(cfg["paths"]["outputs"]) / "tables" / "label_summary.csv")
+    summ.to_csv(resolve(cfg["paths"]["outputs"]) / "tables" / "label_summary.csv", index=False)
+    log.info("Label summary:\n%s", summ.to_string(index=False))
+    log.info("Unknown reasons:\n%s", out.loc[out["label_status"] == "unknown", "unknown_reason"].value_counts().to_string())
+
+    # Gate G4
+    events_pos = out.loc[out["label_status"] == "positive", "event_id"].nunique()
+    if events_pos < cfg["labels"]["min_events_for_modelling"]:
+        log.warning("GATE G4 WARNING: only %d events with positive labels (< %d). Treat results as a case study or "
+                    "a static susceptibility study, not a validated 24 h forecast.",
+                    events_pos, cfg["labels"]["min_events_for_modelling"])
+    if (out["label_status"] == "negative").sum() == 0:
+        log.warning("GATE G4 WARNING: no confirmed negatives. A classifier cannot be trained without them.")
+    return out
+
+
+def assemble_table(cfg: dict, log) -> pd.DataFrame:
+    proc = resolve(cfg["paths"]["processed"])
+    labels = pd.read_parquet(proc / "labels.parquet")
+    labels = labels[labels["label_status"].isin(["positive", "negative"])].copy()
+    static = pd.read_parquet(proc / "static_segment_features.parquet")
+    wmap = pd.read_parquet(proc / "segment_weather_map.parquet")
+    fcst = pd.read_parquet(proc / "forecast_features.parquet")
+
+    tbl = labels.merge(static, on="segment_id", how="left", validate="m:1")
+    hz_path = proc / "hazard_labels.parquet"
+    if hz_path.exists():  # modelled FastFlood exposure per segment (NaN where no hazard cells cover the segment)
+        hz = pd.read_parquet(hz_path)[["segment_id", "max_hazard_value", "mean_hazard_value", "hazard_pos_fraction",
+                                       "hazard_high_fraction", "covered_fraction"]]
+        tbl = tbl.merge(hz, on="segment_id", how="left", validate="m:1")
+    else:
+        log.warning("hazard_labels.parquet not found: FastFlood exposure features are not available.")
+    tbl = tbl.merge(wmap, on="segment_id", how="left", validate="m:1")
+    tbl = tbl.merge(fcst, on=["weather_location_id", "forecast_issue_time_utc"], how="left", validate="m:1")
+    tbl["data_quality_flag"] = tbl["data_quality_flag"].fillna("NO_WEATHER")
+
+    # Gate G5: leakage audit
+    used = tbl["max_issue_time_used_utc"]
+    assert (used.isna() | (used <= tbl["forecast_issue_time_utc"])).all(), "Leakage: forecast newer than issue time"
+    forbidden = {"flood_label", "label_status", "label_confidence", "evidence_type", "source_id"}
+    cfg_feats = set(cfg["training"]["static_features"] + cfg["training"]["forecast_features"] + cfg["training"]["categorical_features"])
+    assert not (cfg_feats & forbidden), "Label columns configured as predictors"
+
+    # dictionary check (warn only)
+    dd_path = resolve(cfg["paths"]["data_dictionary"])
+    if dd_path.exists():
+        documented = set(pd.read_csv(dd_path)["column"])
+        undocumented = [c for c in tbl.columns if c not in documented]
+        if undocumented:
+            log.warning("Columns missing from data_dictionary.csv: %s", undocumented)
+    out = proc / "modelling_table.parquet"
+    tbl.to_parquet(out, index=False)
+    log.info("Modelling table: %d rows, %d events, %d positives, %d negatives -> %s", len(tbl),
+             tbl["event_id"].nunique(), int((tbl["flood_label"] == 1).sum()), int((tbl["flood_label"] == 0).sum()), out)
+    log.info("Rows by data_quality_flag: %s", tbl["data_quality_flag"].value_counts().to_dict())
+    return tbl
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("command", choices=["labels", "assemble"])
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("build_labels", cfg)
+    if args.command == "labels":
+        build_labels(cfg, log)
+    else:
+        assemble_table(cfg, log)
+
+
+if __name__ == "__main__":
+    main()
+
+4.11  src/train.py
+OPTIONAL dated events. Rain-threshold and FastFlood baselines, static Model A and forecast-conditioned Model B (with and without FastFlood exposure features) using event-based cross-validation. Its make_pipeline function is also used by train_static.py.
+"""Train and cross-validate the rule baseline, static model A and forecast-conditioned model B.
+
+Usage:
+    python src/train.py                     # leave-events-out CV + final models
+    python src/train.py --advanced          # also add gradient-boosted trees (only if labels justify it)
+    python src/train.py --split chronological --test-fraction 0.3
+
+Splits are by EVENT (never by random road rows): every row of a storm stays in one fold.
+Outputs: outputs/tables/oof_predictions.parquet, models/<name>.joblib, models/<name>.json
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime, timezone
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GroupKFold
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+from common import ensure_parent, load_settings, resolve, setup_logging
+
+
+def make_pipeline(kind: str, numeric: list[str], categorical: list[str], seed: int) -> Pipeline:
+    num_steps = [("impute", SimpleImputer(strategy="median", keep_empty_features=True))]
+    if kind == "logreg":
+        num_steps.append(("scale", StandardScaler()))
+    transformers = [("num", Pipeline(num_steps), numeric)]
+    if categorical:
+        transformers.append(("cat", OneHotEncoder(handle_unknown="ignore"), categorical))
+    pre = ColumnTransformer(transformers)
+    if kind == "logreg":
+        clf = LogisticRegression(max_iter=2000, class_weight="balanced", random_state=seed)
+    elif kind == "rf":
+        clf = RandomForestClassifier(n_estimators=300, min_samples_leaf=3, class_weight="balanced_subsample",
+                                     n_jobs=-1, random_state=seed)
+    elif kind == "hgb":
+        clf = HistGradientBoostingClassifier(max_depth=4, learning_rate=0.05, max_iter=200, random_state=seed)
+    else:
+        raise ValueError(kind)
+    return Pipeline([("pre", pre), ("clf", clf)])
+
+
+def model_specs(cfg: dict, advanced: bool, table: pd.DataFrame) -> dict:
+    tr = cfg["training"]
+    static_num = [c for c in tr["static_features"] if c in table.columns]
+    fc_num = [c for c in tr["forecast_features"] if c in table.columns]
+    cats = [c for c in tr["categorical_features"] if c in table.columns]
+    specs = {
+        "A_logreg": ("logreg", static_num, cats),
+        "A_rf": ("rf", static_num, cats),
+        "B_logreg": ("logreg", static_num + fc_num, cats),
+        "B_rf": ("rf", static_num + fc_num, cats),
+    }
+    haz = [c for c in tr.get("hazard_features", []) if c in table.columns and table[c].notna().any()]
+    if tr.get("use_hazard_features_in_event_models", True) and haz:
+        # does adding the modelled FastFlood exposure help against OBSERVED events?
+        for fam in ("logreg", "rf"):
+            specs[f"A_{fam}_haz"] = (fam, static_num + haz, cats)
+            specs[f"B_{fam}_haz"] = (fam, static_num + fc_num + haz, cats)
+    if advanced:
+        specs["B_hgb"] = ("hgb", static_num + fc_num, cats)
+    return specs
+
+
+def split_folds(table: pd.DataFrame, args, cfg: dict, log):
+    events = table.groupby("event_id")["forecast_issue_time_utc"].min().sort_values()
+    if len(events) < 2:
+        raise SystemExit("Need at least 2 events for an event-based split (gate G4).")
+    if args.split == "chronological":
+        n_test = max(1, int(round(len(events) * args.test_fraction)))
+        test_events = set(events.index[-n_test:])
+        yield 0, table.index[~table["event_id"].isin(test_events)], table.index[table["event_id"].isin(test_events)]
+        return
+    n_splits = min(cfg["training"]["n_splits"], len(events))
+    gkf = GroupKFold(n_splits=n_splits)
+    for k, (tr, te) in enumerate(gkf.split(table, table["flood_label"], groups=table["event_id"])):
+        yield k, table.index[tr], table.index[te]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--split", choices=["group_kfold", "chronological"], default="group_kfold")
+    ap.add_argument("--test-fraction", type=float, default=0.3)
+    ap.add_argument("--advanced", action="store_true")
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("train", cfg)
+    seed = cfg["project"]["random_seed"]
+
+    table = pd.read_parquet(resolve(cfg["paths"]["processed"]) / "modelling_table.parquet")
+    table = table[table["data_quality_flag"] == "OK"].reset_index(drop=True)  # complete weather only
+    if table["flood_label"].nunique() < 2:
+        raise SystemExit("Both positive and confirmed-negative labels are required to train.")
+    log.info("Training rows: %d (%d events, %.1f%% positive)", len(table), table["event_id"].nunique(),
+             100 * table["flood_label"].mean())
+    specs = model_specs(cfg, args.advanced, table)
+    rule_thr = cfg["training"]["rule_threshold_mm_24h"]
+
+    oof = []
+    for fold, tr_idx, te_idx in split_folds(table, args, cfg, log):
+        train, test = table.loc[tr_idx], table.loc[te_idx]
+        base = test[["event_id", "segment_id", "forecast_issue_time_utc", "flood_label"]].copy()
+        base["fold"] = fold
+        # Baseline 0: transparent rule - the score is simply forecast 24 h rainfall (scaled by threshold)
+        r = base.copy()
+        r["model"] = "rule_rain24h"
+        r["score"] = (test["rain_fcst_next_24h_mm"].fillna(0) / rule_thr).values
+        oof.append(r)
+        if "hazard_pos_fraction" in test.columns:
+            # Baseline: the modelled FastFlood hazard used directly (share of segment in hazard cells; 0 if uncovered)
+            h = base.copy()
+            h["model"] = "rule_fastflood"
+            h["score"] = test["hazard_pos_fraction"].fillna(0).values
+            oof.append(h)
+        if train["flood_label"].nunique() < 2:
+            log.warning("Fold %d: training data has one class only - model rows skipped.", fold)
+            continue
+        for name, (kind, num, cat) in specs.items():
+            pipe = make_pipeline(kind, num, cat, seed).fit(train[num + cat], train["flood_label"].astype(int))
+            m = base.copy()
+            m["model"] = name
+            m["score"] = pipe.predict_proba(test[num + cat])[:, 1]
+            oof.append(m)
+        log.info("Fold %d done: %d train rows, %d test rows, test events %s", fold, len(train), len(test),
+                 sorted(test["event_id"].unique()))
+
+    oof = pd.concat(oof, ignore_index=True)
+    out = ensure_parent(resolve(cfg["paths"]["outputs"]) / "tables" / "oof_predictions.parquet")
+    oof.to_parquet(out, index=False)
+    log.info("Held-out predictions -> %s", out)
+
+    # Final models on all labelled data (for the prototype predictions)
+    models_dir = resolve(cfg["paths"]["models"])
+    models_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    for name, (kind, num, cat) in specs.items():
+        pipe = make_pipeline(kind, num, cat, seed).fit(table[num + cat], table["flood_label"].astype(int))
+        version = f"{name.lower()}_{cfg['training']['model_version_prefix']}"
+        joblib.dump(pipe, models_dir / f"{name}.joblib")
+        meta = {"name": name, "model_version": version, "kind": kind, "numeric_features": num,
+                "categorical_features": cat, "trained_utc": stamp, "n_rows": int(len(table)),
+                "n_events": int(table["event_id"].nunique()), "positive_rate": float(table["flood_label"].mean()),
+                "validated": False}
+        with open(models_dir / f"{name}.json", "w", encoding="utf-8") as fh:
+            json.dump(meta, fh, indent=2)
+        log.info("Saved %s (%s)", name, version)
+
+
+if __name__ == "__main__":
+    main()
+
+4.12  src/evaluate.py
+Precision, recall, F1, PR-AUC, Brier score, detection, calibration and PR plots, and the G6 bootstrap comparison. Use --static for the hazard models.
+"""Evaluate held-out predictions: precision/recall/F1, PR-AUC, Brier, event detection, calibration, G6 comparison.
+
+Usage:
+    python src/evaluate.py                # event-based results from train.py
+    python src/evaluate.py --static       # spatial-block results from train_static.py (hazard dataset)
+Outputs: outputs/metrics/[static/]metrics.csv, metrics.json, g6_comparison.csv and PNG plots.
+In --static mode the "event" columns refer to spatial blocks (event_id holds the block id).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+from sklearn.calibration import calibration_curve  # noqa: E402
+from sklearn.metrics import (average_precision_score, brier_score_loss, f1_score,  # noqa: E402
+                             precision_recall_curve, precision_score, recall_score)
+
+from common import ensure_parent, load_settings, resolve, setup_logging  # noqa: E402
+
+RULE = "rule_rain24h"
+
+
+def is_rule(model: str) -> bool:
+    return model.startswith("rule_")
+
+
+def decision_threshold(model: str, cfg: dict) -> float:
+    # the rain rule score is rain/threshold, so its natural decision point is 1.0
+    return 1.0 if model == RULE else cfg["training"]["decision_threshold"]
+
+
+def safe_ap(y, s):
+    return float(average_precision_score(y, s)) if len(np.unique(y)) == 2 else np.nan
+
+
+def model_metrics(df: pd.DataFrame, model: str, cfg: dict) -> dict:
+    y, s = df["flood_label"].astype(int).values, df["score"].values
+    thr = decision_threshold(model, cfg)
+    pred = (s >= thr).astype(int)
+    row = {
+        "model": model, "n_rows": len(df), "n_events": df["event_id"].nunique(),
+        "n_positive": int(y.sum()), "prevalence": float(y.mean()), "threshold": thr,
+        "precision": float(precision_score(y, pred, zero_division=0)),
+        "recall": float(recall_score(y, pred, zero_division=0)),
+        "f1": float(f1_score(y, pred, zero_division=0)),
+        "pr_auc": safe_ap(y, s),
+        "brier": float(brier_score_loss(y, np.clip(s, 0, 1))) if not is_rule(model) else np.nan,
+    }
+    pos_events = df[df["flood_label"] == 1].groupby("event_id")["score"].max()
+    row["events_with_positives"] = int(len(pos_events))
+    row["event_detection_rate"] = float((pos_events >= thr).mean()) if len(pos_events) else np.nan
+    # false-alarm events: events where a confirmed negative scored above the threshold
+    neg_events = df[df["flood_label"] == 0].groupby("event_id")["score"].max()
+    row["events_with_negatives"] = int(len(neg_events))
+    row["event_false_alarm_rate"] = float((neg_events >= thr).mean()) if len(neg_events) else np.nan
+    return row
+
+
+def cluster_bootstrap_diff(oof: pd.DataFrame, a: str, b: str, reps: int, seed: int):
+    """Event-level bootstrap of PR-AUC(b) - PR-AUC(a), resampling whole events."""
+    da, db = oof[oof["model"] == a], oof[oof["model"] == b]
+    events = np.array(sorted(set(da["event_id"]) & set(db["event_id"])))
+    if len(events) < 3:
+        return np.nan, np.nan, np.nan, 0
+    rng = np.random.default_rng(seed)
+    ga, gb = {e: g for e, g in da.groupby("event_id")}, {e: g for e, g in db.groupby("event_id")}
+    diffs = []
+    for _ in range(reps):
+        pick = rng.choice(events, size=len(events), replace=True)
+        xa = pd.concat([ga[e] for e in pick])
+        xb = pd.concat([gb[e] for e in pick])
+        apa, apb = safe_ap(xa["flood_label"], xa["score"]), safe_ap(xb["flood_label"], xb["score"])
+        if not (np.isnan(apa) or np.isnan(apb)):
+            diffs.append(apb - apa)
+    if not diffs:
+        return np.nan, np.nan, np.nan, 0
+    return float(np.mean(diffs)), float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5)), len(diffs)
+
+
+def plots(oof: pd.DataFrame, out_dir, cfg: dict, unit: str = "events") -> None:
+    models = sorted(oof["model"].unique())
+    fig, ax = plt.subplots(figsize=(6, 5))
+    for m in models:
+        d = oof[oof["model"] == m]
+        if d["flood_label"].nunique() == 2:
+            p, r, _ = precision_recall_curve(d["flood_label"], d["score"])
+            ax.plot(r, p, label=m)
+    prev = oof["flood_label"].mean()
+    ax.axhline(prev, color="grey", ls="--", label=f"prevalence {prev:.2f}")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+    ax.set_title(f"Precision-recall (held-out {unit})")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out_dir / "pr_curves.png", dpi=150)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.plot([0, 1], [0, 1], "k--", label="perfect")
+    for m in models:
+        if is_rule(m):
+            continue
+        d = oof[oof["model"] == m]
+        if d["flood_label"].nunique() < 2:
+            continue
+        try:
+            frac, mean = calibration_curve(d["flood_label"], np.clip(d["score"], 0, 1),
+                                           n_bins=cfg["evaluation"]["calibration_bins"], strategy="quantile")
+        except ValueError:
+            continue
+        ax.plot(mean, frac, marker="o", label=m)
+    ax.set_xlabel("Mean predicted probability")
+    ax.set_ylabel("Observed frequency")
+    ax.set_title(f"Calibration (held-out {unit})")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out_dir / "calibration.png", dpi=150)
+    plt.close(fig)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--static", action="store_true", help="evaluate hazard-dataset models (spatial blocks)")
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("evaluate", cfg)
+    out_root = resolve(cfg["paths"]["outputs"])
+    oof_path = out_root / "tables" / ("oof_static_predictions.parquet" if args.static else "oof_predictions.parquet")
+    oof = pd.read_parquet(oof_path).dropna(subset=["flood_label"])
+    out_dir = out_root / "metrics" / ("static" if args.static else "")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    unit = "spatial blocks" if args.static else "events"
+
+    rows = [model_metrics(g, m, cfg) for m, g in oof.groupby("model")]
+    metrics = pd.DataFrame(rows).sort_values("pr_auc", ascending=False)
+    metrics.to_csv(out_dir / "metrics.csv", index=False)
+    with open(out_dir / "metrics.json", "w", encoding="utf-8") as fh:
+        json.dump(metrics.to_dict(orient="records"), fh, indent=2, default=float)
+    log.info("Held-out metrics (%s):\n%s", unit, metrics.round(3).to_string(index=False))
+
+    present = set(oof["model"])
+    comps = []
+    if args.static:
+        # G6s: does a trained static model beat the transparent low-elevation rule on held-out blocks?
+        comps = [("rule_low_elevation", m) for m in sorted(present) if m.startswith("H_")]
+        if {"H_logreg", "H_rf"} <= present:
+            comps.append(("H_logreg", "H_rf"))
+    else:
+        # G6: does the forecast-conditioned model beat the static model and the rain rule on the same events?
+        for fam in ("logreg", "rf"):
+            if {f"A_{fam}", f"B_{fam}"} <= present:
+                comps.append((f"A_{fam}", f"B_{fam}"))
+        comps += [(RULE, b) for b in sorted(present) if b.startswith("B_") and not b.endswith("_haz")]
+        # does the modelled FastFlood exposure add value against observed events?
+        comps += [(m[:-4], m) for m in sorted(present) if m.endswith("_haz") and m[:-4] in present]
+        if "rule_fastflood" in present and "B_rf" in present:
+            comps.append(("rule_fastflood", "B_rf"))
+    recs = []
+    for a, b in comps:
+        mean, lo, hi, n = cluster_bootstrap_diff(oof, a, b, cfg["evaluation"]["bootstrap_replicates"],
+                                                 cfg["project"]["random_seed"])
+        verdict = "no demonstrated improvement" if (np.isnan(lo) or lo <= 0) else "improvement (CI above 0)"
+        recs.append({"baseline": a, "candidate": b, "mean_pr_auc_diff": mean, "ci95_low": lo, "ci95_high": hi,
+                     "valid_replicates": n, "verdict": verdict})
+    comp = pd.DataFrame(recs)
+    comp.to_csv(out_dir / "g6_comparison.csv", index=False)
+    if not comp.empty:
+        log.info("G6 comparison (bootstrap over whole %s, PR-AUC difference):\n%s", unit, comp.round(3).to_string(index=False))
+    plots(oof, out_dir, cfg, unit)
+    first = oof["model"].iloc[0]
+    log.info("Report counts alongside metrics: %d held-out rows, %d %s. Small samples mean wide uncertainty.",
+             int((oof["model"] == first).sum()), oof["event_id"].nunique(), unit)
+
+
+if __name__ == "__main__":
+    main()
+
+4.13  src/predict.py
+Per-road predictions: static susceptibility (default), optional 24 h rain context columns (no effect on the score), or forecast-conditioned predictions from event-trained B models. Writes CSV, GeoPackage and a map.
+"""Per-road flood SUSCEPTIBILITY (research prototype, not a warning service).
+
+Two kinds of model:
+    H_* (trained on the FastFlood hazard dataset) -> STATIC susceptibility: how prone a road segment is to
+        flooding, valid for any time. If you also pass --latest or --issue-time, the Open-Meteo 24 h rainfall is
+        added as context columns only (it does not change the susceptibility score or tier).
+    A_* / B_* (trained on time-stamped events, optional) -> B_* are forecast-conditioned and need an issue time.
+
+Usage:
+    python src/predict.py                                  # static susceptibility map (default model H_rf)
+    python src/predict.py --latest                         # + latest Open-Meteo rainfall context
+    python src/predict.py --issue-time 2026-10-24T03:00:00Z --model H_logreg
+    python src/predict.py --latest --model B_rf            # event-trained forecast model (if you built one)
+Outputs (outputs/): predictions_<model>_<stamp>.csv / .gpkg and maps/risk_<model>_<stamp>.png
+"""
+from __future__ import annotations
+
+import argparse
+import json
+
+import geopandas as gpd
+import joblib
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from build_features import compute_forecast_features  # noqa: E402
+from common import ensure_parent, load_settings, resolve, setup_logging, utc  # noqa: E402
+
+def risk_tier(p: float, tiers: dict) -> str:
+    if np.isnan(p):
+        return "Unavailable"
+    label = "Low"
+    for name, lower in sorted(tiers.items(), key=lambda kv: kv[1]):
+        if p >= lower:
+            label = name
+    return label
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--issue-time", default=None)
+    ap.add_argument("--latest", action="store_true")
+    ap.add_argument("--model", default=None)
+    ap.add_argument("--config", default=None)
+    args = ap.parse_args()
+    cfg = load_settings(args.config)
+    log = setup_logging("predict", cfg)
+    proc = resolve(cfg["paths"]["processed"])
+    tz = cfg["project"]["display_timezone"]
+    name = args.model or cfg["prediction"]["default_model"]
+
+    pipe = joblib.load(resolve(cfg["paths"]["models"]) / f"{name}.joblib")
+    meta = json.load(open(resolve(cfg["paths"]["models"]) / f"{name}.json", encoding="utf-8"))
+    feats = meta["numeric_features"] + meta["categorical_features"]
+    uses_forecast = any(f in set(cfg["training"]["forecast_features"]) for f in feats)
+
+    df = pd.read_parquet(proc / "static_segment_features.parquet")
+    map_path = proc / "segment_weather_map.parquet"
+    if map_path.exists():
+        df = df.merge(pd.read_parquet(map_path), on="segment_id", how="left")
+    elif args.issue_time or args.latest:
+        raise SystemExit("segment_weather_map.parquet missing: run fetch_openmeteo.py grid, then build_features.py static.")
+    else:
+        df["weather_location_id"] = None
+
+    hz_path = proc / "hazard_labels.parquet"
+    if hz_path.exists():  # direct modelled exposure, shown next to every prediction
+        hz = pd.read_parquet(hz_path)[["segment_id", "max_hazard_value", "hazard_pos_fraction", "covered_fraction"]].rename(
+            columns={"max_hazard_value": "fastflood_max_hazard", "hazard_pos_fraction": "fastflood_hazard_share",
+                     "covered_fraction": "fastflood_coverage"})
+        df = df.merge(hz, on="segment_id", how="left")
+        # provenance: FastFlood-covered segments carry the original modelled hazard; others are model estimates
+        df["susceptibility_source"] = np.where(df["fastflood_coverage"].fillna(0) >= cfg["hazard"]["min_coverage"],
+                                               "fastflood_covered", "model_predicted_no_fastflood")
+
+    T = None
+    if args.issue_time or args.latest:
+        weather = pd.read_parquet(proc / "weather_hourly.parquet")
+        T = utc(args.issue_time) if args.issue_time else weather.dropna(subset=["forecast_issue_time_utc"])["forecast_issue_time_utc"].max()
+        T = T.floor("h")
+        log.info("Issue time %s UTC (%s EAT)", T, T.tz_convert(tz))
+        fc = compute_forecast_features(weather, [T], cfg, log)
+        df = df.merge(fc, on="weather_location_id", how="left", suffixes=("", "_fc"))
+        df["data_quality_flag"] = df["data_quality_flag"].fillna("NO_WEATHER")
+    elif uses_forecast:
+        raise SystemExit(f"Model {name} uses forecast features: pass --latest or --issue-time.")
+    else:
+        df["data_quality_flag"] = "STATIC_ONLY"
+
+    missing = [c for c in feats if c not in df.columns]
+    if missing:
+        raise RuntimeError(f"Features missing at prediction time: {missing}")
+    ok = (df["data_quality_flag"] == "OK") if uses_forecast else df["elevation_m"].notna()
+    prob = np.full(len(df), np.nan)
+    if ok.any():
+        prob[ok.values] = pipe.predict_proba(df.loc[ok, feats])[:, 1]
+    pcol = "flood_probability" if uses_forecast else "susceptibility_probability"
+    df[pcol] = prob.round(4)
+    tier_col = "risk_tier" if uses_forecast else "susceptibility_tier"
+    df[tier_col] = [risk_tier(p, cfg["prediction"]["risk_tiers"]) for p in prob]
+    df["model_version"] = meta["model_version"]
+    df["trained_on"] = meta.get("trained_on", "event_inventory")
+    df["validated_for_operational_use"] = bool(cfg["prediction"]["validated"])
+
+    cols = ["segment_id", "road_name", "road_class", pcol, tier_col, "susceptibility_source", "fastflood_max_hazard",
+            "fastflood_hazard_share", "fastflood_coverage"]
+    if T is not None:
+        df["forecast_issue_time"] = T.tz_convert(tz).isoformat()
+        df["target_start"] = T.tz_convert(tz).strftime("%Y-%m-%d %H:%M")
+        df["target_end"] = (T + pd.Timedelta(hours=24)).tz_convert(tz).strftime("%Y-%m-%d %H:%M EAT")
+        cols += ["forecast_issue_time", "target_start", "target_end", "rain_fcst_next_24h_mm", "weather_location_id"]
+        if not uses_forecast:
+            trig = cfg["training"]["rule_threshold_mm_24h"]
+            df["rain_above_threshold"] = df["rain_fcst_next_24h_mm"] >= trig
+            cols += ["rain_above_threshold"]
+            log.info("Rain columns are context only (threshold %.0f mm / 24 h). Susceptibility is static and does not "
+                     "change with the forecast.", trig)
+    cols += ["data_quality_flag", "model_version", "trained_on", "validated_for_operational_use"]
+    cols = [c for c in cols if c in df.columns]
+
+    stamp = T.strftime("%Y%m%dT%H%MZ") if T is not None else "static"
+    out_dir = resolve(cfg["paths"]["outputs"])
+    csv_path = ensure_parent(out_dir / f"predictions_{name}_{stamp}.csv")
+    df[cols].to_csv(csv_path, index=False)
+    seg = gpd.read_file(resolve(cfg["paths"]["interim"]) / "road_segments.gpkg", layer="segments")[["segment_id", "geometry"]]
+    gdf = seg.merge(df[cols], on="segment_id").to_crs(cfg["project"]["geographic_crs"])
+    gdf.to_file(out_dir / f"predictions_{name}_{stamp}.gpkg", layer="predictions", driver="GPKG")
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    colours = {"Low": "#7aa95c", "Medium": "#f0a030", "High": "#c0392b", "Unavailable": "#bbbbbb"}
+    for tier, g in gdf.groupby(tier_col):
+        g.plot(ax=ax, color=colours.get(tier, "#888888"), linewidth=0.8, label=tier)
+    ax.legend(title="Tier (not validated)" if not cfg["prediction"]["validated"] else "Tier")
+    kind = "forecast-conditioned risk" if uses_forecast else "susceptibility"
+    when = f" - rain context issued {T.tz_convert(tz):%Y-%m-%d %H:%M} EAT" if T is not None else ""
+    ax.set_title(f"Road flood {kind} ({name}){when}", fontsize=10)
+    ax.set_axis_off()
+    map_path = ensure_parent(out_dir / "maps" / f"risk_{name}_{stamp}.png")
+    fig.savefig(map_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    log.info("Wrote %s, its .gpkg and %s", csv_path.name, map_path.name)
+    log.info("Tier counts: %s", df[tier_col].value_counts().to_dict())
+    if not cfg["prediction"]["validated"]:
+        log.warning("Outputs are research-prototype values: probabilities are uncalibrated until validated.")
+
+
+if __name__ == "__main__":
+    main()
+
+4.14  config/data_dictionary.csv
+Documents the columns of the modelling tables and outputs.
+column,family,description,unit,source
+event_id,label,Identifier of the flood event (storm) used for event-based splits,,event_inventory.csv
+observation_id,label,Identifier of one report/observation row in the inventory,,event_inventory.csv
+segment_id,key,Stable road-segment identifier (NRD_000001 ...),,prepare_gis.py
+forecast_issue_time_utc,key,Time the forecast is assumed issued (UTC),UTC,build_labels.py
+target_start_utc,key,Start of the 24 h target window (UTC),UTC,build_labels.py
+target_end_utc,key,End of the 24 h target window (UTC),UTC,build_labels.py
+flood_label,target,1 = documented flooded; 0 = documented not flooded (never unknown),0/1,build_labels.py
+label_status,qa,positive / negative / unknown,,build_labels.py
+unknown_reason,qa,Why an observation became Unknown,,build_labels.py
+label_confidence,qa,Confidence of the evidence (date-only reports capped at low),,event_inventory.csv
+evidence_type,qa,Type of evidence (news / official / image / satellite),,event_inventory.csv
+source_id,qa,Source reference for the label,,event_inventory.csv
+daily_formulation,qa,True when only a date (not a time) was known,,event_inventory.csv
+spatial_precision_m,qa,Stated spatial precision of the report,m,event_inventory.csv
+osm_id,static,OpenStreetMap id of the parent road,,OSM
+road_name,static,Road name where tagged,,OSM
+road_class,static,OSM fclass of the road,,OSM
+segment_length_m,static,Segment length,m,prepare_gis.py
+centroid_x,static,Segment centroid easting in working CRS,m,build_features.py
+centroid_y,static,Segment centroid northing in working CRS,m,build_features.py
+centroid_lon,static,Segment centroid longitude,deg,build_features.py
+centroid_lat,static,Segment centroid latitude,deg,build_features.py
+elevation_m,static,Mean DEM elevation along the segment,m,DEM
+slope_deg,static,Mean slope along the segment,deg,DEM
+local_relief_m,static,Max minus min elevation in the relief window,m,DEM
+lc_frac_10,static,Share of class 10 in the buffer around the segment,fraction,land cover
+lc_frac_20,static,Share of class 20 in the buffer around the segment,fraction,land cover
+lc_frac_30,static,Share of class 30 in the buffer around the segment,fraction,land cover
+lc_frac_40,static,Share of class 40 in the buffer around the segment,fraction,land cover
+lc_frac_50,static,Share of class 50 in the buffer around the segment,fraction,land cover
+lc_frac_60,static,Share of class 60 in the buffer around the segment,fraction,land cover
+lc_frac_70,static,Share of class 70 in the buffer around the segment,fraction,land cover
+lc_frac_80,static,Share of class 80 in the buffer around the segment,fraction,land cover
+lc_frac_90,static,Share of class 90 in the buffer around the segment,fraction,land cover
+lc_frac_95,static,Share of class 95 in the buffer around the segment,fraction,land cover
+lc_frac_100,static,Share of class 100 in the buffer around the segment,fraction,land cover
+builtup_fraction,static,Built-up share in the buffer (verify legend),fraction,land cover
+vegetation_fraction,static,Vegetation share in the buffer (verify legend),fraction,land cover
+water_fraction,static,Water and wetland share in the buffer (verify legend),fraction,land cover
+other_fraction,static,Remaining share in the buffer,fraction,land cover
+distance_to_river_m,static,Distance to nearest mapped river/stream/canal/drain,m,OSM waterways
+is_bridge,static,1 if tagged bridge; NaN if the tag is unavailable,0/1,OSM
+is_tunnel,static,1 if tagged tunnel; NaN if the tag is unavailable,0/1,OSM
+surface,static,Surface tag where present,,OSM
+weather_location_id,weather,Open-Meteo grid point assigned to the segment,,build_features.py
+weather_distance_m,weather,Distance from segment centroid to its weather point,m,build_features.py
+n_hours_24h,weather,Hours of precipitation available in the 24 h window,hours,Open-Meteo
+rain_fcst_next_24h_mm,forecast,Forecast precipitation total over the next 24 h,mm,Open-Meteo
+max_hourly_precip_mm,forecast,Maximum hourly forecast precipitation in the window,mm/h,Open-Meteo
+wet_hours_count,forecast,Hours with precipitation at or above the wet-hour threshold,hours,Open-Meteo
+n_hours_6h,weather,Hours of precipitation available in the 6 h window,hours,Open-Meteo
+rain_fcst_next_6h_mm,forecast,Forecast precipitation total over the next 6 h,mm,Open-Meteo
+n_hours_ante,weather,Hours of antecedent forecast data available,hours,Open-Meteo
+antecedent_fcst_prev_24h_mm,forecast,Forecast-based precipitation over the 24 h before issue time (not observed),mm,Open-Meteo
+precipitation_probability_max,forecast,Maximum forecast precipitation probability in the window,percent,Open-Meteo
+data_quality_flag,qa,OK / INCOMPLETE_WEATHER / NO_WEATHER,,build_features.py
+max_issue_time_used_utc,qa,Newest forecast issue time used (must be <= issue time),UTC,build_features.py
+hazard_label,target,1 = segment lies in hazard cells; 0 = in mapped cells with no hazard (primary static label),0/1,build_hazard_labels.py
+n_cells,qa,Number of hazard cells overlapping the segment,count,build_hazard_labels.py
+covered_length_m,qa,Segment length inside mapped hazard cells,m,build_hazard_labels.py
+pos_length_m,qa,Segment length inside positive hazard cells,m,build_hazard_labels.py
+covered_fraction,qa,Share of segment length covered by mapped cells,fraction,build_hazard_labels.py
+hazard_pos_fraction,qa,Share of covered length that is positive,fraction,build_hazard_labels.py
+mean_hazard_value,qa,Length-weighted mean flood_hazard value of overlapping cells,,build_hazard_labels.py
+spatial_block,qa,Spatial block id used for leave-block-out validation,,build_hazard_labels.py
+susceptibility_probability,output,Static susceptibility score from an H_* model (uncalibrated),0-1,predict.py
+rain_above_threshold,output,True when forecast 24 h rain >= rule threshold (context only; does not change susceptibility),bool,predict.py
+susceptibility_tier,output,Low / Medium / High tier from susceptibility_probability (illustrative thresholds; not validated),,predict.py
+max_hazard_value,static,Highest modelled FastFlood hazard category among cells overlapping the segment (NaN if uncovered),category,FastFlood output
+fastflood_max_hazard,output,max_hazard_value shown beside predictions,category,predict.py
+fastflood_hazard_share,output,Share of covered segment length in hazard cells (direct FastFlood exposure),fraction,predict.py
+hazard_high_fraction,static,Share of covered segment length in deep-hazard cells (flood_hazard >= high_threshold; depth above 100 cm),fraction,FastFlood output
+
+4.15  data/interim/event_inventory_template.csv
+Template for the OPTIONAL dated flood-event inventory. The two rows are examples only - replace them with real, reviewed reports.
+event_id,observation_id,observed_status,lat,lon,event_start_local,event_end_local,date_only,spatial_precision_m,evidence_type,source_id,source_url,published_time_local,confidence,review_status,notes
+EVT_2026_04_001,OBS_0001,flooded,-1.2921,36.8219,2026-04-24 15:30,2026-04-24 19:00,false,30,news_geolocated,SRC_001,https://example.org/report,2026-04-24 20:10,high,reviewed,Example row - replace with a real reviewed report
+EVT_2026_04_001,OBS_0002,not_flooded,-1.3000,36.8000,2026-04-24 15:30,2026-04-24 19:00,false,30,official_incident_check,SRC_002,https://example.org/check,2026-04-24 21:00,medium,reviewed,Explicit evidence the road was checked and passable
+
+4.16  tests/smoke_test.py
+End-to-end test on synthetic data, including a TAB-separated hazard file in your layout. Run it before using real data.
+"""End-to-end smoke test on SYNTHETIC data (no internet, no real Nairobi data needed; includes a TAB-separated flood-hazard file).
+
+Run:   python tests/smoke_test.py          or          pytest -q tests/smoke_test.py
+It copies src/ and config/ into a temporary project, fabricates a boundary, roads, rivers, DEM, land cover,
+weather responses and a flood event inventory, then runs every pipeline step and checks the outputs.
+The numbers it produces are meaningless - it only proves the code runs and the plumbing is correct.
+"""
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import rasterio
+import yaml
+from rasterio.transform import from_origin
+from shapely.geometry import LineString, Polygon, box
+
+REPO = Path(__file__).resolve().parents[1]
+W, S, E, N = 36.78, -1.32, 36.86, -1.25            # synthetic study area (lon/lat)
+
+
+def run(root: Path, *cmd: str) -> None:
+    env = {**os.environ, "FLOOD_PROJECT_ROOT": str(root)}
+    res = subprocess.run([sys.executable, *cmd], cwd=root, env=env, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise AssertionError(f"Command failed: {' '.join(cmd)}\n{res.stdout[-3000:]}\n{res.stderr[-3000:]}")
+
+
+def make_inputs(root: Path) -> None:
+    rng = np.random.default_rng(1)
+    raw = root / "data" / "raw"
+    for d in ("boundary", "osm_shapefiles", "dem", "landcover"):
+        (raw / d).mkdir(parents=True, exist_ok=True)
+
+    gpd.GeoDataFrame({"name": ["Nairobi"]}, geometry=[box(W, S, E, N)], crs="EPSG:4326").to_file(
+        raw / "boundary" / "nairobi_boundary.gpkg", driver="GPKG")
+
+    lines, classes = [], []
+    for lon in np.arange(W - 0.01, E + 0.01, 0.004):
+        lines.append(LineString([(lon, S - 0.01), (lon, N + 0.01)]))
+    for lat in np.arange(S - 0.01, N + 0.01, 0.004):
+        lines.append(LineString([(W - 0.01, lat), (E + 0.01, lat)]))
+    classes = rng.choice(["residential", "tertiary", "primary", "footway"], size=len(lines), p=[.5, .25, .15, .1])
+    roads = gpd.GeoDataFrame({"osm_id": [str(1000 + i) for i in range(len(lines))], "fclass": classes,
+                              "name": [f"Road {i}" for i in range(len(lines))], "bridge": "F", "tunnel": "F"},
+                             geometry=lines, crs="EPSG:4326")
+    roads.to_file(raw / "osm_shapefiles" / "gis_osm_roads_free_1.shp")
+    gpd.GeoDataFrame({"fclass": ["river"]}, geometry=[LineString([(36.78, -1.25), (36.86, -1.32)])],
+                     crs="EPSG:4326").to_file(raw / "osm_shapefiles" / "gis_osm_waterways_free_1.shp")
+
+    west, north, south = 36.76, -1.23, -1.34
+    res = 0.0003
+    cols, rows = int((0.12) / res), int((north - south) / res)
+    yy, xx = np.mgrid[0:rows, 0:cols]
+    dem = (1700 + 0.4 * yy + 15 * np.sin(xx / 25.0) + rng.normal(0, 1, (rows, cols))).astype("float32")
+    with rasterio.open(raw / "dem" / "dem.tif", "w", driver="GTiff", height=rows, width=cols, count=1, dtype="float32",
+                       crs="EPSG:4326", transform=from_origin(west, north, res, res), nodata=-9999) as dst:
+        dst.write(dem, 1)
+
+    res = 0.0001
+    cols, rows = int(0.12 / res), int((north - south) / res)
+    block = 100
+    codes = rng.choice([10, 30, 40, 50, 50, 50, 80], size=(rows // block + 1, cols // block + 1))
+    lc = np.kron(codes, np.ones((block, block), dtype="uint8"))[:rows, :cols].astype("uint8")
+    with rasterio.open(raw / "landcover" / "landcover.tif", "w", driver="GTiff", height=rows, width=cols, count=1,
+                       dtype="uint8", crs="EPSG:4326", transform=from_origin(west, north, res, res), nodata=0) as dst:
+        dst.write(lc, 1)
+
+    # synthetic flood-hazard cells in the same layout as the real dataset (TAB separated); hazard follows low DEM
+    (raw / "flood_hazard").mkdir(parents=True, exist_ok=True)
+    dres, dwest, dnorth = 0.0003, 0.0 + 36.76, -1.23
+    rows_h = []
+    for lat in np.arange(S + 0.00045, N, 0.0009):
+        for lon in np.arange(W + 0.0005, E, 0.001):
+            if lon < W + 0.012:      # leave the western strip without hazard cells (partial coverage like the real file)
+                continue
+            r_i, c_i = int((dnorth - lat) / dres), int((lon - dwest) / dres)
+            elev = float(dem[min(r_i, dem.shape[0] - 1), min(c_i, dem.shape[1] - 1)])
+            z = -(elev - 1745.0) / 8.0
+            rows_h.append({"latitude": round(lat, 8), "longitude": round(lon, 8), "lat_min": round(lat - 0.00045, 8),
+                           "lat_max": round(lat + 0.00045, 8), "lon_min": round(lon - 0.0005 - (0.000004 if len(rows_h) % 2 else 0), 8),
+                           "lon_max": round(lon + 0.0005, 8), "flood_hazard": int(rng.random() < 1 / (1 + np.exp(-z))) + int(rng.random() < 0.4 / (1 + np.exp(-z)))})
+    pd.DataFrame(rows_h).to_csv(raw / "flood_hazard" / "flood_hazard.csv", sep="\t", index=False)
+
+
+def make_weather_and_events(root: Path) -> None:
+    sys.path.insert(0, str(root / "src"))
+    os.environ["FLOOD_PROJECT_ROOT"] = str(root)
+    import fetch_openmeteo as fo
+    from common import load_settings
+    cfg = load_settings()
+    rng = np.random.default_rng(7)
+    grid = gpd.read_file(root / cfg["paths"]["grid_points"])
+    static = pd.read_parquet(root / "data" / "processed" / "static_segment_features.parquet")
+
+    starts = pd.date_range("2026-03-05 14:00", periods=10, freq="9D")       # local event starts (EAT)
+    event_rain = rng.uniform(5, 70, len(starts))
+    times = pd.date_range("2026-03-01", "2026-06-10", freq="h", tz="UTC")
+    frames = []
+    retrieved = pd.Timestamp("2026-06-11", tz="UTC")
+    for row in grid.itertuples():
+        precip = rng.exponential(0.05, len(times))
+        for st, rain in zip(starts, event_rain):
+            issue = (st.tz_localize("Africa/Nairobi") - pd.Timedelta(hours=6)).tz_convert("UTC").floor("h")
+            heavy = (times >= issue) & (times < issue + pd.Timedelta(hours=6))
+            precip[heavy] += rain / 6.0
+        loc_json = {"latitude": row.latitude, "longitude": row.longitude,
+                    "hourly_units": {"precipitation_previous_day1": "mm", "temperature_2m_previous_day1": "C"},
+                    "hourly": {"time": [t.strftime("%Y-%m-%dT%H:%M") for t in times],
+                               "precipitation_previous_day1": precip.round(3).tolist(),
+                               "temperature_2m_previous_day1": (18 + rng.normal(0, 1, len(times))).round(2).tolist()}}
+        frames.append(fo.normalise_response(loc_json, row.location_id, row.latitude, row.longitude, "previous_runs",
+                                            retrieved, "best_match", "synthetic", "synthetic.json"))
+    weather = pd.concat(frames, ignore_index=True)
+    assert set(weather["variable"]) == {"precipitation", "temperature_2m"}
+    assert (weather["lead_hours"] == 24).all()
+    import logging
+    fo.append_weather(weather, root / "data" / "processed" / "weather_hourly.parquet", logging.getLogger("smoke"))
+
+    # synthetic events: flooding likelier on low ground in heavy-rain events
+    med_elev = static["elevation_m"].median()
+    recs = []
+    for i, (st, rain) in enumerate(zip(starts, event_rain)):
+        pick = static.sample(40, random_state=i)
+        for j, seg in enumerate(pick.itertuples()):
+            z = -(seg.elevation_m - med_elev) / 15.0 + (rain - 35.0) / 12.0
+            flooded = rng.random() < 1 / (1 + np.exp(-z))
+            recs.append({"event_id": f"EVT_{i + 1:02d}", "observation_id": f"OBS_{i + 1:02d}_{j + 1:03d}",
+                         "observed_status": "flooded" if flooded else "not_flooded",
+                         "lat": seg.centroid_lat, "lon": seg.centroid_lon,
+                         "event_start_local": st.strftime("%Y-%m-%d %H:%M"), "event_end_local": "",
+                         "date_only": "false", "spatial_precision_m": 20, "evidence_type": "synthetic",
+                         "source_id": "SYN", "source_url": "", "published_time_local": "",
+                         "confidence": "high", "review_status": "reviewed" if j % 10 else "pending", "notes": ""})
+    pd.DataFrame(recs).to_csv(root / "data" / "interim" / "event_inventory.csv", index=False)
+
+
+def run_smoke(root: Path) -> None:
+    shutil.copytree(REPO / "src", root / "src")
+    shutil.copytree(REPO / "config", root / "config")
+    cfg = yaml.safe_load(open(root / "config" / "settings.yaml"))
+    cfg["openmeteo"]["grid_spacing_km"] = 2
+    cfg["labels"]["min_events_for_modelling"] = 5
+    yaml.safe_dump(cfg, open(root / "config" / "settings.yaml", "w"))
+
+    make_inputs(root)
+    run(root, "src/prepare_gis.py", "all")
+    run(root, "src/fetch_openmeteo.py", "grid")
+    run(root, "src/build_features.py", "static")
+    run(root, "src/build_hazard_labels.py")
+    run(root, "src/check_coverage.py")
+    run(root, "src/train_static.py")
+    run(root, "src/evaluate.py", "--static")
+    make_weather_and_events(root)
+    run(root, "src/build_labels.py", "labels")
+    run(root, "src/build_features.py", "forecast", "--from-labels")
+    run(root, "src/build_labels.py", "assemble")
+    run(root, "src/train.py")
+    run(root, "src/evaluate.py")
+    run(root, "src/predict.py", "--model", "B_rf", "--issue-time", "2026-04-10T05:00:00Z")
+    run(root, "src/predict.py")                                             # static map, default H_rf
+    run(root, "src/predict.py", "--issue-time", "2026-04-10T05:00:00Z")      # static + rain context
+
+    proc = root / "data" / "processed"
+    seg = gpd.read_file(root / "data" / "interim" / "road_segments.gpkg")
+    assert len(seg) > 500 and seg["segment_id"].is_unique
+    assert "footway" not in set(seg["fclass"]), "fclass filter failed"
+    static = pd.read_parquet(proc / "static_segment_features.parquet")
+    assert static["elevation_m"].notna().mean() > 0.95
+    assert static["builtup_fraction"].between(0, 1).all()
+    table = pd.read_parquet(proc / "modelling_table.parquet")
+    assert table["flood_label"].isin([0, 1]).all() and table["flood_label"].nunique() == 2
+    assert (table["max_issue_time_used_utc"] <= table["forecast_issue_time_utc"]).all()
+    assert (table["data_quality_flag"] == "OK").mean() > 0.9
+    metrics = pd.read_csv(root / "outputs" / "metrics" / "metrics.csv")
+    assert {"rule_rain24h", "rule_fastflood", "A_rf", "B_rf", "B_rf_haz"} <= set(metrics["model"])
+    assert {"max_hazard_value", "hazard_pos_fraction"} <= set(table.columns)
+    hl = pd.read_parquet(proc / "hazard_labels.parquet")
+    assert {"positive", "negative"} <= set(hl["label_status"]), "hazard labels need both classes"
+    assert hl.loc[hl["label_status"] == "unknown", "hazard_label"].isna().all(), "Unknown must stay unlabelled"
+    cov = pd.read_csv(root / "outputs" / "tables" / "coverage_report.csv", index_col=0)["value"]
+    assert cov["segments_outside_footprint"] > 0 and cov["boundary_without_cells_km2"] > 0
+    assert abs(cov["labels_minus_diagnostic"]) <= 0.005 * cov["segments_total"], "label script vs footprint test disagree"
+    assert (hl["label_source"].isin(["fastflood_original", "none"])).all() and hl["susceptibility_score"].between(0, 1).sum() > 0
+    ms = pd.read_csv(root / "outputs" / "metrics" / "static" / "metrics.csv")
+    assert {"rule_low_elevation", "H_logreg", "H_rf"} <= set(ms["model"])
+    h = ms.set_index("model")
+    assert h.loc["H_rf", "pr_auc"] > h.loc["H_rf", "prevalence"], "static model should beat prevalence on held-out blocks"
+    out = root / "outputs"
+    p1 = pd.read_csv(out / "predictions_B_rf_20260410T0500Z.csv")
+    assert p1["flood_probability"].between(0, 1).sum() > 0 and "risk_tier" in p1.columns
+    p2 = pd.read_csv(out / "predictions_H_rf_static.csv")
+    assert p2["susceptibility_probability"].between(0, 1).sum() > 0
+    p3 = pd.read_csv(out / "predictions_H_rf_20260410T0500Z.csv")
+    assert set(p2["susceptibility_source"]) == {"fastflood_covered", "model_predicted_no_fastflood"}
+    assert {"rain_above_threshold", "susceptibility_tier"} <= set(p3.columns) and "rain_escalated_tier_heuristic" not in p3.columns
+    print(ms[["model", "n_rows", "n_positive", "prevalence", "precision", "recall", "pr_auc"]].round(3).to_string(index=False))
+    print("SMOKE TEST PASSED")
+    print(metrics[["model", "n_rows", "n_positive", "precision", "recall", "pr_auc", "brier"]].round(3).to_string(index=False))
+
+
+def test_pipeline_end_to_end(tmp_path):
+    run_smoke(tmp_path / "proj")
+
+
+if __name__ == "__main__":
+    with tempfile.TemporaryDirectory() as d:
+        run_smoke(Path(d) / "proj")
+
+4.17  README.md
+Short project readme with setup and run order.
+# Nairobi Road Flood Susceptibility (research prototype)
+
+Maps how susceptible road segments in Nairobi County are to flooding, from the SPACE4ALL FastFlood hazard cells
+(modelled, no timestamps) + DEM + land cover + OpenStreetMap roads. Open-Meteo 24 h rainfall is optional
+context only. This is a susceptibility map, not a flood forecast: no exact flood events are available to train or
+validate one. Dated, reviewed flood reports (optional workflow) would be needed for that.
+
+## Setup
+```
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+Place inputs as described in config/settings.yaml (inputs section; hazard file at
+data/raw/flood_hazard/flood_hazard.csv), then run in order:
+```
+python src/prepare_gis.py inventory
+python src/prepare_gis.py all
+python src/fetch_openmeteo.py grid         # weather points (needed before 'static' to link roads to them)
+python src/build_features.py static
+python src/build_hazard_labels.py          # PRIMARY labels from the hazard dataset
+python src/check_coverage.py               # boundary area + hazard coverage diagnostics (read the log!)
+python src/train_static.py                 # spatial-block validation
+python src/evaluate.py --static
+python src/predict.py                      # static susceptibility map
+python src/fetch_openmeteo.py fetch --mode live --limit 8
+python src/predict.py --latest             # susceptibility + rain context columns
+```
+Optional, once you have reviewed time-stamped events: build_labels.py labels, build_features.py forecast
+--from-labels, build_labels.py assemble, train.py, evaluate.py, predict.py --model B_rf --latest.
+Verify the code first on synthetic data: `python tests/smoke_test.py`.
+
+## Important
+Outputs are research-prototype values, not an operational warning service. Unknown labels are never treated as
+non-floods; always split by event; report uncertainty and sample counts.
+
+
+Part 5 - Testing, assumptions to verify, and troubleshooting
+5.1 What was tested
+All scripts compile, and the settings file parses.
+tests/smoke_test.py ran the whole chain on synthetic data (Python 3.13; geopandas 1.2, rasterio 1.5, scikit-learn 1.9, pandas 3.0, shapely 2.2): GIS preparation, weather grid, static features, a TAB-separated hazard file in your column layout, hazard labels, spatial-block training and evaluation, static and rain-context predictions, and the optional dated-event chain with leakage assertions. It passed. The synthetic numbers mean nothing.
+The weather parser was tested on responses I built to look like the documented Open-Meteo format (including the _previous_day1 variable naming). I could not reach the Open-Meteo documentation or API from my workspace, so the live request code has NOT been run against the real service.
+Not tested: your real hazard file (I know its columns and legend from the documentation, but not its size, level counts or coverage), DEM, land cover, OSM extract and boundary. Their column names and legends can differ from my assumptions. The synthetic hazard file uses the three-level legend.
+5.2 Do these first with your real data
+Run build_hazard_labels.py first and read the log. Check the cell counts per hazard level, the share of cells inside the study area, the cell area, the segment label summary, the unknown reasons and any G4h warning. Open data/interim/hazard_cells.gpkg over the roads in QGIS.
+Run a live test with --limit 8. Check the log lines for variables returned, units and time range (gate G1). If the API rejects a variable the code falls back to a smaller list and logs it. If you see a parameter or variable-name error, compare with the Open-Meteo documentation links in section 14 of your plan; the URLs and variable lists are in settings.yaml.
+Check the previous-runs variables. Confirm which variables (precipitation, rain, showers and so on) actually have _previous_day1 versions for Nairobi and your period. Only precipitation is strictly needed.
+Verify the land-cover legend. The default codes follow the ESA WorldCover legend (10-100). If your raster is a different product or year, edit class_names and the built-up, vegetation and water code lists. The log warns about codes not in the legend.
+Confirm the roads layer and fclass values. The Geofabrik free roads layer has fclass, bridge and tunnel columns but no surface column. The script logs the fclass counts it keeps; decide explicitly about footpaths, tracks and service roads in roads.keep_fclass.
+Confirm the working CRS. EPSG:32737 (UTM 37S) is set for Nairobi, which lies just south of the equator.
+Open the clipped layers in QGIS. Plot roads over dem_clip.tif and landcover_clip.tif, including county edges, before trusting the features.
+5.3 Design decisions you should know about
+Rasters are warped once to the working CRS: the DEM with bilinear resampling and the land cover with nearest-neighbour. The original downloads are never changed. The clip is the boundary's bounding box plus a margin so edge segments have terrain context.
+Land-cover fractions are computed in a circular buffer (landcover.buffer_m) at five points along each segment and averaged. This approximates the segment buffer and keeps processing fast for tens of thousands of segments. Try 25, 50 and 100 m as the plan suggests.
+Segment IDs (NRD_000001, ...) are stable only for the same inputs and settings, because roads are sorted deterministically before numbering. Do not change the roads layer or segment length mid-project without regenerating labels.
+Each weather point is assigned to its nearest requested grid point. More points do not give finer meteorological resolution; several may resolve to the same model cell (returned coordinates are stored for checking).
+antecedent_fcst_prev_24h_mm is built from forecast values available at issue time, not observed rainfall. If it is mostly missing, remove it from training.forecast_features.
+Reports without a time (optional event inventory) use the daily formulation (local midnight) and low confidence, so under the default settings they become Unknown and do not enter training.
+Hazard labels are validated with spatial blocks (default 2 km) because neighbouring segments share the same cells. A random split of road segments would overstate accuracy. Try other block sizes; accuracy that collapses with larger blocks suggests the model only learned local patterns.
+Latitude, longitude and the hazard values themselves are never used as predictors. Predictors are terrain, land cover, river distance and road attributes only.
+A road segment is labelled from the length of it inside hazard cells, so a long segment crossing several cells is handled proportionally; a segment mostly outside mapped cells stays Unknown.
+Which hazard cells count as flooded is a choice. The default (level 1 or 2, depth 10 cm or more) marks many roads; set hazard.positive_threshold to 2 to model only depths above 100 cm, and compare.
+The same hazard files exist for Kisumu, Accra, Tema, Beira and Chimoio. They are not used here, but a model trained on other cities and tested on Nairobi would be a stricter test of whether the static features transfer. It would still only test agreement with FastFlood.
+rain_above_threshold in predict.py only compares forecast 24 h rain with training.rule_threshold_mm_24h. It is context, not a prediction of when flooding happens.
+The rain-threshold rule baseline (default 20 mm in 24 h) is only a transparent benchmark; tune the threshold on training events, not on the held-out ones.
+Open-Meteo's free API has usage limits and terms (including non-commercial use). Check their current terms and limits before scheduling large or frequent requests; increase openmeteo.sleep_seconds if you receive HTTP 429 responses.
+5.4 Troubleshooting
+Message or symptom
+Likely cause and fix
+Roads layer not found / non-line geometries (G3)
+The wrong OSM layer is configured. Point inputs.roads_shapefile at gis_osm_roads_free_1.shp (a line layer).
+Roads layer has no CRS
+The .prj file is missing next to the .shp. Keep .shp, .shx, .dbf, .prj and .cpg together.
+No roads left after clipping
+Boundary and roads do not overlap, or the boundary CRS is wrong. Check in QGIS.
+Raster covers less than 99% of the boundary
+Wrong tile or CRS. Download the correct DEM or land-cover tile.
+Over 50% NoData after warping
+Source raster CRS is missing or wrong, or the area is outside the raster.
+HTTP 429 or repeated retries
+Rate limit. Increase openmeteo.sleep_seconds, reduce batch_size, or fetch fewer points.
+API rejected every variable set
+Endpoint, dates or variable names are wrong for that mode. Start with a short date range and --limit 2.
+GATE G4h WARNING
+Too few positive or negative road segments, or positives in too few spatial blocks. Check hazard coverage, what 0 means, the positive_threshold, and the block size.
+flood_hazard values not in the settings legend
+The file has levels other than 0, 1, 2. Update hazard.levels and the thresholds.
+BOUNDARY CHECK warning
+The boundary is a rectangle or much larger than the county. Replace it with the real Nairobi County polygon, then rerun prepare_gis.py, build_hazard_labels.py and check_coverage.py.
+Many Unknown with no_hazard_cells
+Run check_coverage.py. If the uncovered area lies outside the real county there is nothing to fill; if it lies inside, extend FastFlood there or use the H models and keep the provenance flag.
+touch_only_overlap_below_min
+Segments that only touch a cell edge. Lower hazard.min_overlap_m, or accept them as uncovered.
+Label script and footprint test disagree
+Check both use the same segment file and boundary; open uncovered_segments.gpkg and compare with hazard_labels.parquet.
+Hazard dataset is missing columns
+Your header names differ. Map them under hazard.columns in settings.yaml.
+No hazard cells fall inside the study area
+Latitude and longitude may be swapped, or the dataset covers a different area.
+Most segments Unknown with no_hazard_cells
+The hazard file does not cover most roads. Check coverage in QGIS; training uses only the covered segments.
+Need at least 3 spatial blocks
+Reduce hazard.block_size_m or provide labels over a wider area.
+Model H_rf uses forecast features / model not found
+Run train_static.py before predict.py; static models need no issue time.
+GATE G4 WARNING (dated events)
+Too few labelled events or no confirmed negatives. Collect more reviewed evidence.
+Need at least 2 events for an event-based split
+The modelling table has one event. Add events; never fall back to a random row split.
+Rows flagged INCOMPLETE_WEATHER or NO_WEATHER
+The weather table does not cover the 24 h window for that issue time. Fetch the missing dates; these rows are excluded from training.
+Columns missing from data_dictionary.csv
+A new feature was added. Add a row for it to the data dictionary.
+
+All outputs are research-prototype values. Describe the tiers as relative susceptibility, not as warnings or forecasts. The tier thresholds are illustrative; review them before any use beyond research.

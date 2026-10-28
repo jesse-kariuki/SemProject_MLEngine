@@ -1,0 +1,11 @@
+2026-10-28 12:51:39,666 | INFO | Wrote predictions_H_rf_static.csv, its .gpkg and risk_H_rf_static.png
+2026-10-28 12:51:39,677 | INFO | Tier counts: {'Low': 52195, 'Medium': 12485, 'High': 11803, 'Unavailable': 7113}
+2026-10-28 12:51:39,677 | WARNING | Outputs are research-prototype values: probabilities are uncalibrated until validated.
+2026-10-28 14:02:05,427 | INFO | Wrote predictions_H_rf_static.csv, its .gpkg and risk_H_rf_static.png
+2026-10-28 14:02:05,439 | INFO | Tier counts: {'Low': 52195, 'Medium': 12485, 'High': 11803, 'Unavailable': 7113}
+2026-10-28 14:02:05,439 | WARNING | Outputs are research-prototype values: probabilities are uncalibrated until validated.
+2026-10-28 14:02:59,651 | INFO | Issue time 2026-10-28 11:00:00+00:00 UTC (2026-10-28 14:00:00+03:00 EAT)
+2026-10-28 14:03:01,467 | INFO | Rain columns are context only (threshold 20 mm / 24 h). Susceptibility is static and does not change with the forecast.
+2026-10-28 14:03:15,565 | INFO | Wrote predictions_H_rf_20261028T1100Z.csv, its .gpkg and risk_H_rf_20261028T1100Z.png
+2026-10-28 14:03:15,575 | INFO | Tier counts: {'Low': 52195, 'Medium': 12485, 'High': 11803, 'Unavailable': 7113}
+2026-10-28 14:03:15,576 | WARNING | Outputs are research-prototype values: probabilities are uncalibrated until validated.

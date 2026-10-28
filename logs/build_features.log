@@ -1,0 +1,204 @@
+2026-10-26 14:50:48,302 | INFO | DEM: 1480-2168 m, mean slope 4.4 deg
+2026-10-26 14:50:51,013 | INFO | Land-cover classes present: [10, 20, 30, 40, 50, 80, 90, 100]
+2026-10-26 14:51:42,015 | INFO | River distance (m): median 666, max 6164
+2026-10-26 14:51:43,039 | INFO | Static features: 139250 segments x 28 columns -> D:\floodguard\data\processed\static_segment_features.parquet
+2026-10-26 14:51:43,064 | INFO | Missing share per feature:
+segment_id             0.000
+osm_id                 0.000
+road_name              0.806
+road_class             0.000
+segment_length_m       0.000
+centroid_x             0.000
+centroid_y             0.000
+centroid_lon           0.000
+centroid_lat           0.000
+elevation_m            0.119
+slope_deg              0.120
+local_relief_m         0.117
+lc_frac_10             0.000
+lc_frac_20             0.000
+lc_frac_30             0.000
+lc_frac_40             0.000
+lc_frac_50             0.000
+lc_frac_80             0.000
+lc_frac_90             0.000
+lc_frac_100            0.000
+builtup_fraction       0.000
+vegetation_fraction    0.000
+water_fraction         0.000
+other_fraction         0.000
+distance_to_river_m    0.000
+is_bridge              0.000
+is_tunnel              0.000
+surface                1.000
+2026-10-26 14:51:43,592 | INFO | Assigned 139250 segments to 60 weather points (max distance 3703 m)
+2026-10-26 14:52:26,446 | INFO | DEM: 1480-2168 m, mean slope 4.4 deg
+2026-10-26 14:52:29,224 | INFO | Land-cover classes present: [10, 20, 30, 40, 50, 80, 90, 100]
+2026-10-26 14:53:20,198 | INFO | River distance (m): median 666, max 6164
+2026-10-26 14:53:21,043 | INFO | Static features: 139250 segments x 28 columns -> D:\floodguard\data\processed\static_segment_features.parquet
+2026-10-26 14:53:21,067 | INFO | Missing share per feature:
+segment_id             0.000
+osm_id                 0.000
+road_name              0.806
+road_class             0.000
+segment_length_m       0.000
+centroid_x             0.000
+centroid_y             0.000
+centroid_lon           0.000
+centroid_lat           0.000
+elevation_m            0.119
+slope_deg              0.120
+local_relief_m         0.117
+lc_frac_10             0.000
+lc_frac_20             0.000
+lc_frac_30             0.000
+lc_frac_40             0.000
+lc_frac_50             0.000
+lc_frac_80             0.000
+lc_frac_90             0.000
+lc_frac_100            0.000
+builtup_fraction       0.000
+vegetation_fraction    0.000
+water_fraction         0.000
+other_fraction         0.000
+distance_to_river_m    0.000
+is_bridge              0.000
+is_tunnel              0.000
+surface                1.000
+2026-10-26 14:53:21,605 | INFO | Assigned 139250 segments to 60 weather points (max distance 3703 m)
+2026-10-26 15:00:15,785 | INFO | DEM: 1480-2168 m, mean slope 4.4 deg
+2026-10-26 15:00:18,272 | INFO | Land-cover classes present: [10, 20, 30, 40, 50, 80, 90, 100]
+2026-10-26 15:01:01,546 | INFO | River distance (m): median 666, max 6164
+2026-10-26 15:01:02,283 | INFO | Static features: 139250 segments x 28 columns -> D:\floodguard\data\processed\static_segment_features.parquet
+2026-10-26 15:01:02,300 | INFO | Missing share per feature:
+segment_id             0.000
+osm_id                 0.000
+road_name              0.806
+road_class             0.000
+segment_length_m       0.000
+centroid_x             0.000
+centroid_y             0.000
+centroid_lon           0.000
+centroid_lat           0.000
+elevation_m            0.119
+slope_deg              0.120
+local_relief_m         0.117
+lc_frac_10             0.000
+lc_frac_20             0.000
+lc_frac_30             0.000
+lc_frac_40             0.000
+lc_frac_50             0.000
+lc_frac_80             0.000
+lc_frac_90             0.000
+lc_frac_100            0.000
+builtup_fraction       0.000
+vegetation_fraction    0.000
+water_fraction         0.000
+other_fraction         0.000
+distance_to_river_m    0.000
+is_bridge              0.000
+is_tunnel              0.000
+surface                1.000
+2026-10-26 15:01:02,692 | INFO | Assigned 139250 segments to 60 weather points (max distance 3703 m)
+2026-10-26 15:06:37,683 | INFO | DEM: 1480-2186 m, mean slope 4.4 deg
+2026-10-26 15:06:39,914 | INFO | Land-cover classes present: [10, 20, 30, 40, 50, 80, 90, 100]
+2026-10-26 15:07:10,849 | INFO | River distance (m): median 492, max 3858
+2026-10-26 15:07:11,252 | INFO | Static features: 83596 segments x 28 columns -> D:\floodguard\data\processed\static_segment_features.parquet
+2026-10-26 15:07:11,263 | INFO | Missing share per feature:
+segment_id             0.000
+osm_id                 0.000
+road_name              0.762
+road_class             0.000
+segment_length_m       0.000
+centroid_x             0.000
+centroid_y             0.000
+centroid_lon           0.000
+centroid_lat           0.000
+elevation_m            0.085
+slope_deg              0.085
+local_relief_m         0.083
+lc_frac_10             0.000
+lc_frac_20             0.000
+lc_frac_30             0.000
+lc_frac_40             0.000
+lc_frac_50             0.000
+lc_frac_80             0.000
+lc_frac_90             0.000
+lc_frac_100            0.000
+builtup_fraction       0.000
+vegetation_fraction    0.000
+water_fraction         0.000
+other_fraction         0.000
+distance_to_river_m    0.000
+is_bridge              0.000
+is_tunnel              0.000
+surface                1.000
+2026-10-26 15:07:11,478 | INFO | Assigned 83596 segments to 31 weather points (max distance 5968 m)
+2026-10-28 13:36:11,855 | INFO | DEM: 1480-2186 m, mean slope 4.4 deg
+2026-10-28 13:36:15,002 | INFO | Land-cover classes present: [10, 20, 30, 40, 50, 80, 90, 100]
+2026-10-28 13:37:01,049 | INFO | River distance (m): median 492, max 3858
+2026-10-28 13:37:01,707 | INFO | Static features: 83596 segments x 28 columns -> D:\floodguard\data\processed\static_segment_features.parquet
+2026-10-28 13:37:01,728 | INFO | Missing share per feature:
+segment_id             0.000
+osm_id                 0.000
+road_name              0.762
+road_class             0.000
+segment_length_m       0.000
+centroid_x             0.000
+centroid_y             0.000
+centroid_lon           0.000
+centroid_lat           0.000
+elevation_m            0.085
+slope_deg              0.085
+local_relief_m         0.083
+lc_frac_10             0.000
+lc_frac_20             0.000
+lc_frac_30             0.000
+lc_frac_40             0.000
+lc_frac_50             0.000
+lc_frac_80             0.000
+lc_frac_90             0.000
+lc_frac_100            0.000
+builtup_fraction       0.000
+vegetation_fraction    0.000
+water_fraction         0.000
+other_fraction         0.000
+distance_to_river_m    0.000
+is_bridge              0.000
+is_tunnel              0.000
+surface                1.000
+2026-10-28 13:37:02,008 | INFO | Assigned 83596 segments to 31 weather points (max distance 5968 m)
+2026-10-28 17:33:43,355 | INFO | DEM: 1480-2186 m, mean slope 4.4 deg
+2026-10-28 17:33:46,951 | INFO | Land-cover classes present: [10, 20, 30, 40, 50, 80, 90, 100]
+2026-10-28 17:34:35,692 | INFO | River distance (m): median 492, max 3858
+2026-10-28 17:34:36,829 | INFO | Static features: 83596 segments x 28 columns -> D:\floodguard\data\processed\static_segment_features.parquet
+2026-10-28 17:34:36,846 | INFO | Missing share per feature:
+segment_id             0.000
+osm_id                 0.000
+road_name              0.762
+road_class             0.000
+segment_length_m       0.000
+centroid_x             0.000
+centroid_y             0.000
+centroid_lon           0.000
+centroid_lat           0.000
+elevation_m            0.085
+slope_deg              0.085
+local_relief_m         0.083
+lc_frac_10             0.000
+lc_frac_20             0.000
+lc_frac_30             0.000
+lc_frac_40             0.000
+lc_frac_50             0.000
+lc_frac_80             0.000
+lc_frac_90             0.000
+lc_frac_100            0.000
+builtup_fraction       0.000
+vegetation_fraction    0.000
+water_fraction         0.000
+other_fraction         0.000
+distance_to_river_m    0.000
+is_bridge              0.000
+is_tunnel              0.000
+surface                1.000
+2026-10-28 17:34:37,132 | INFO | Assigned 83596 segments to 31 weather points (max distance 5968 m)

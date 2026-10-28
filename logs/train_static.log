@@ -1,0 +1,65 @@
+2026-10-26 15:22:53,761 | WARNING | The hazard labels are FastFlood MODEL output derived from DEM/land cover/soil. H_* models learn to reproduce that model from similar inputs (an emulator). Good held-out scores show agreement with FastFlood, NOT skill at predicting real floods. For exposure use the hazard columns directly (max_hazard_value, hazard_pos_fraction).
+2026-10-26 15:22:53,762 | INFO | Training table: 72882 segments, 171 spatial blocks, 19.1% positive
+2026-10-26 15:23:01,932 | INFO | Fold 0: 58305 train / 14577 test segments, 34 test blocks
+2026-10-26 15:23:09,599 | INFO | Fold 1: 58305 train / 14577 test segments, 34 test blocks
+2026-10-26 15:23:17,634 | INFO | Fold 2: 58307 train / 14575 test segments, 34 test blocks
+2026-10-26 15:23:25,299 | INFO | Fold 3: 58308 train / 14574 test segments, 35 test blocks
+2026-10-26 15:23:32,917 | INFO | Fold 4: 58303 train / 14579 test segments, 34 test blocks
+2026-10-26 15:23:33,679 | INFO | Saved H_logreg
+2026-10-28 12:44:24,734 | WARNING | The hazard labels are FastFlood MODEL output derived from DEM/land cover/soil. H_* models learn to reproduce that model from similar inputs (an emulator). Good held-out scores show agreement with FastFlood, NOT skill at predicting real floods. For exposure use the hazard columns directly (max_hazard_value, hazard_pos_fraction).
+2026-10-28 12:44:24,737 | INFO | Training table: 72882 segments, 171 spatial blocks, 19.1% positive
+2026-10-28 12:44:36,476 | INFO | Fold 0: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 12:44:51,475 | INFO | Fold 1: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 12:45:05,115 | INFO | Fold 2: 58307 train / 14575 test segments, 34 test blocks
+2026-10-28 12:45:20,475 | INFO | Fold 3: 58308 train / 14574 test segments, 35 test blocks
+2026-10-28 12:45:31,644 | INFO | Fold 4: 58303 train / 14579 test segments, 34 test blocks
+2026-10-28 12:45:36,842 | INFO | Saved H_logreg
+2026-10-28 12:45:58,189 | INFO | Saved H_rf
+2026-10-28 12:45:58,444 | INFO | Top features (impurity importance, interpret with care):
+num__distance_to_river_m       0.365
+num__elevation_m               0.158
+num__local_relief_m            0.104
+num__slope_deg                 0.091
+num__segment_length_m          0.088
+num__vegetation_fraction       0.081
+num__builtup_fraction          0.076
+cat__road_class_residential    0.007
+2026-10-28 12:45:58,444 | INFO | Next: python src/evaluate.py --static
+2026-10-28 13:50:27,386 | WARNING | The hazard labels are FastFlood MODEL output derived from DEM/land cover/soil. H_* models learn to reproduce that model from similar inputs (an emulator). Good held-out scores show agreement with FastFlood, NOT skill at predicting real floods. For exposure use the hazard columns directly (max_hazard_value, hazard_pos_fraction).
+2026-10-28 13:50:27,387 | INFO | Training table: 72882 segments, 171 spatial blocks, 19.1% positive
+2026-10-28 13:50:37,880 | INFO | Fold 0: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 13:50:49,730 | INFO | Fold 1: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 13:50:59,397 | INFO | Fold 2: 58307 train / 14575 test segments, 34 test blocks
+2026-10-28 13:51:08,796 | INFO | Fold 3: 58308 train / 14574 test segments, 35 test blocks
+2026-10-28 13:51:17,737 | INFO | Fold 4: 58303 train / 14579 test segments, 34 test blocks
+2026-10-28 13:51:18,665 | INFO | Saved H_logreg
+2026-10-28 13:51:30,163 | INFO | Saved H_rf
+2026-10-28 13:51:30,316 | INFO | Top features (impurity importance, interpret with care):
+num__distance_to_river_m       0.365
+num__elevation_m               0.158
+num__local_relief_m            0.104
+num__slope_deg                 0.091
+num__segment_length_m          0.088
+num__vegetation_fraction       0.081
+num__builtup_fraction          0.076
+cat__road_class_residential    0.007
+2026-10-28 13:51:30,316 | INFO | Next: python src/evaluate.py --static
+2026-10-28 17:58:05,892 | WARNING | The hazard labels are FastFlood MODEL output derived from DEM/land cover/soil. H_* models learn to reproduce that model from similar inputs (an emulator). Good held-out scores show agreement with FastFlood, NOT skill at predicting real floods. For exposure use the hazard columns directly (max_hazard_value, hazard_pos_fraction).
+2026-10-28 17:58:05,894 | INFO | Training table: 72882 segments, 171 spatial blocks, 19.1% positive
+2026-10-28 17:58:16,712 | INFO | Fold 0: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 17:58:28,171 | INFO | Fold 1: 58305 train / 14577 test segments, 34 test blocks
+2026-10-28 17:58:38,426 | INFO | Fold 2: 58307 train / 14575 test segments, 34 test blocks
+2026-10-28 17:58:47,722 | INFO | Fold 3: 58308 train / 14574 test segments, 35 test blocks
+2026-10-28 17:58:57,223 | INFO | Fold 4: 58303 train / 14579 test segments, 34 test blocks
+2026-10-28 17:58:58,100 | INFO | Saved H_logreg
+2026-10-28 17:59:11,108 | INFO | Saved H_rf
+2026-10-28 17:59:11,340 | INFO | Top features (impurity importance, interpret with care):
+num__distance_to_river_m       0.365
+num__elevation_m               0.158
+num__local_relief_m            0.104
+num__slope_deg                 0.091
+num__segment_length_m          0.088
+num__vegetation_fraction       0.081
+num__builtup_fraction          0.076
+cat__road_class_residential    0.007
+2026-10-28 17:59:11,340 | INFO | Next: python src/evaluate.py --static
