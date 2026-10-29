@@ -1,1 +1,22 @@
-/data/raw/osm_shapefiles
+# Python environment
+.venv/
+__pycache__/
+*.py[cod]
+
+# Raw GIS datasets
+/data/raw/osm_shapefiles/
+
+# Other large raw datasets
+/data/raw/landcover/
+
+# Intermediate GIS outputs
+/data/interim/
+
+# Generated predictions
+/outputs/
+
+# Cache
+/src/cache/
+
+# Large trained model artifacts
+/models/*.joblib

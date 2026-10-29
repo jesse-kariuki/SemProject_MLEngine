@@ -1,0 +1,27 @@
+{
+  "name": "H_logreg",
+  "model_version": "h_logreg_v0.1.0",
+  "kind": "logreg",
+  "trained_on": "hazard_dataset",
+  "target": "static_susceptibility",
+  "numeric_features": [
+    "elevation_m",
+    "slope_deg",
+    "local_relief_m",
+    "builtup_fraction",
+    "vegetation_fraction",
+    "water_fraction",
+    "distance_to_river_m",
+    "segment_length_m",
+    "is_bridge",
+    "is_tunnel"
+  ],
+  "categorical_features": [
+    "road_class"
+  ],
+  "trained_utc": "20261028",
+  "n_rows": 72882,
+  "n_blocks": 171,
+  "positive_rate": 0.19076040723361049,
+  "validated": false
+}

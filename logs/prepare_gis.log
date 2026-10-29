@@ -244,3 +244,7 @@ motorway              67
 2026-10-28 17:32:26,775 | INFO | Wrote dem_clip.tif (1668 x 1082, 75.7% valid)
 2026-10-28 17:32:28,630 | INFO | Wrote landcover_clip.tif (5001 x 3244, 100.0% valid)
 2026-10-28 17:32:28,632 | INFO | prepare_gis complete.
+2026-10-29 08:44:26,512 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-29 08:46:10,501 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-29 08:48:55,276 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
+2026-10-29 08:49:22,207 | INFO | Boundary: area 695.9 km2, 1881 vertices, fills 45.2% of its bounding rectangle
