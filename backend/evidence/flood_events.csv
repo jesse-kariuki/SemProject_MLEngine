@@ -1,0 +1,8 @@
+event_id,date_start,date_end,date_evidence,description,source_url
+E1,2024-04-23,2024-04-24,search_snippet,Nairobi flash floods; Mathare and river corridors,https://www.africanews.com/2024/04/25/kenya-floods-nairobi-residents-grapple-with-aftermath/
+E2,2024-05-01,2024-05-02,url_date_only,Residential areas flooded as rains pound Nairobi,https://www.the-star.co.ke/news/world/2024-05-02-photos-residential-areas-flooded-as-rains-pound-nairobi
+E3,2025-04-21,2025-04-22,article_read,Deaths in Mathare 4A; Mukuru; Ngong River at South B; Jogoo Road. Article says Monday; date inferred from publication on 2025-04-23,https://www.the-star.co.ke/news/2025-04-23-heavy-rains-six-killed-after-flash-floods-in-nairobi
+E4,2026-03-06,2026-03-06,search_snippet,Flash floods; parts of Nairobi submerged and roads impassable,https://www.kenyans.co.ke/news/121448-kdf-and-red-cross-deploy-heavy-rains-submerge-cbd-and-major-highways
+E5,2026-03-15,2026-03-15,search_snippet,Rains disrupt Nairobi Expressway and key roads; Nairobi and Ngong rivers overflow,https://www.the-star.co.ke/news/2026-03-15-rains-wreak-havoc-in-nairobi-again
+E6,2026-04-27,2026-04-28,article_read,Utawala; Ruai bypass near Kangundo Road; Kariokor; Seasons Road,https://www.kenyans.co.ke/news/122945-utawala-kariokor-and-ruai-bypass-among-nairobi-areas-hit-floods-after-overnight-rains?page=8
+E7,2026-04-30,2026-05-01,search_snippet,Heavy overnight rains make major city roads impassable,https://standardmedia.co.ke/business/amp/national/article/2001546788/overnight-rains-leave-city-residents-stuck-in-floods

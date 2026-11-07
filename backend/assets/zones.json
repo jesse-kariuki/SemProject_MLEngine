@@ -1,0 +1,258 @@
+{
+ "model_version": "h_rf_v0.1.0",
+ "model_trained_on": "hazard_dataset",
+ "river_baseline": [
+  "2003-01-01",
+  "2022-07-31"
+ ],
+ "zones": [
+  {
+   "zone_id": "WX_001",
+   "lat": -1.33162,
+   "lon": 36.68715,
+   "segments": 1477,
+   "river_p95": 1.06,
+   "river_p99": 2.6
+  },
+  {
+   "zone_id": "WX_002",
+   "lat": -1.28642,
+   "lon": 36.68719,
+   "segments": 1639,
+   "river_p95": 5.659,
+   "river_p99": 13.59
+  },
+  {
+   "zone_id": "WX_003",
+   "lat": -1.33166,
+   "lon": 36.73205,
+   "segments": 3079,
+   "river_p95": 2.143,
+   "river_p99": 5.15
+  },
+  {
+   "zone_id": "WX_004",
+   "lat": -1.28646,
+   "lon": 36.7321,
+   "segments": 3830,
+   "river_p95": 8.559,
+   "river_p99": 20.059
+  },
+  {
+   "zone_id": "WX_005",
+   "lat": -1.24126,
+   "lon": 36.73213,
+   "segments": 1024,
+   "river_p95": 6.66,
+   "river_p99": 18.053
+  },
+  {
+   "zone_id": "WX_006",
+   "lat": -1.37691,
+   "lon": 36.77692,
+   "segments": 981,
+   "river_p95": 5.807,
+   "river_p99": 17.154
+  },
+  {
+   "zone_id": "WX_007",
+   "lat": -1.3317,
+   "lon": 36.77697,
+   "segments": 2401,
+   "river_p95": 3.054,
+   "river_p99": 7.329
+  },
+  {
+   "zone_id": "WX_008",
+   "lat": -1.2865,
+   "lon": 36.77701,
+   "segments": 6123,
+   "river_p95": 10.012,
+   "river_p99": 23.459
+  },
+  {
+   "zone_id": "WX_009",
+   "lat": -1.2413,
+   "lon": 36.77704,
+   "segments": 3784,
+   "river_p95": 8.449,
+   "river_p99": 22.904
+  },
+  {
+   "zone_id": "WX_010",
+   "lat": -1.37695,
+   "lon": 36.82184,
+   "segments": 119,
+   "river_p95": 0.16,
+   "river_p99": 0.78
+  },
+  {
+   "zone_id": "WX_011",
+   "lat": -1.33174,
+   "lon": 36.82188,
+   "segments": 2818,
+   "river_p95": 4.28,
+   "river_p99": 9.825
+  },
+  {
+   "zone_id": "WX_012",
+   "lat": -1.28654,
+   "lon": 36.82192,
+   "segments": 7256,
+   "river_p95": 19.8,
+   "river_p99": 48.313
+  },
+  {
+   "zone_id": "WX_013",
+   "lat": -1.24134,
+   "lon": 36.82195,
+   "segments": 4386,
+   "river_p95": 1.28,
+   "river_p99": 2.975
+  },
+  {
+   "zone_id": "WX_014",
+   "lat": -1.37699,
+   "lon": 36.86675,
+   "segments": 159,
+   "river_p95": 0.78,
+   "river_p99": 1.72
+  },
+  {
+   "zone_id": "WX_015",
+   "lat": -1.33178,
+   "lon": 36.86679,
+   "segments": 3163,
+   "river_p95": 0.56,
+   "river_p99": 1.4
+  },
+  {
+   "zone_id": "WX_016",
+   "lat": -1.28658,
+   "lon": 36.86683,
+   "segments": 4594,
+   "river_p95": 5.419,
+   "river_p99": 12.52
+  },
+  {
+   "zone_id": "WX_017",
+   "lat": -1.24137,
+   "lon": 36.86687,
+   "segments": 4231,
+   "river_p95": 22.737,
+   "river_p99": 55.424
+  },
+  {
+   "zone_id": "WX_018",
+   "lat": -1.19617,
+   "lon": 36.8669,
+   "segments": 1384,
+   "river_p95": 1.12,
+   "river_p99": 2.644
+  },
+  {
+   "zone_id": "WX_019",
+   "lat": -1.42223,
+   "lon": 36.91163,
+   "segments": 149,
+   "river_p95": 9.059,
+   "river_p99": 29.827
+  },
+  {
+   "zone_id": "WX_020",
+   "lat": -1.37703,
+   "lon": 36.91167,
+   "segments": 335,
+   "river_p95": 0.32,
+   "river_p99": 1.22
+  },
+  {
+   "zone_id": "WX_021",
+   "lat": -1.33182,
+   "lon": 36.91171,
+   "segments": 2733,
+   "river_p95": 0.25,
+   "river_p99": 1.03
+  },
+  {
+   "zone_id": "WX_022",
+   "lat": -1.28662,
+   "lon": 36.91174,
+   "segments": 4655,
+   "river_p95": 29.333,
+   "river_p99": 72.195
+  },
+  {
+   "zone_id": "WX_023",
+   "lat": -1.24141,
+   "lon": 36.91178,
+   "segments": 5322,
+   "river_p95": 30.801,
+   "river_p99": 76.259
+  },
+  {
+   "zone_id": "WX_024",
+   "lat": -1.1962,
+   "lon": 36.91182,
+   "segments": 3787,
+   "river_p95": 23.95,
+   "river_p99": 68.575
+  },
+  {
+   "zone_id": "WX_025",
+   "lat": -1.28665,
+   "lon": 36.95666,
+   "segments": 2887,
+   "river_p95": 0.44,
+   "river_p99": 1.31
+  },
+  {
+   "zone_id": "WX_026",
+   "lat": -1.24144,
+   "lon": 36.9567,
+   "segments": 2078,
+   "river_p95": 31.21,
+   "river_p99": 75.648
+  },
+  {
+   "zone_id": "WX_027",
+   "lat": -1.28669,
+   "lon": 37.00158,
+   "segments": 2340,
+   "river_p95": 30.656,
+   "river_p99": 103.814
+  },
+  {
+   "zone_id": "WX_028",
+   "lat": -1.24148,
+   "lon": 37.00161,
+   "segments": 1846,
+   "river_p95": 31.58,
+   "river_p99": 76.348
+  },
+  {
+   "zone_id": "WX_029",
+   "lat": -1.28672,
+   "lon": 37.0465,
+   "segments": 2919,
+   "river_p95": 30.656,
+   "river_p99": 103.814
+  },
+  {
+   "zone_id": "WX_030",
+   "lat": -1.24151,
+   "lon": 37.04653,
+   "segments": 1389,
+   "river_p95": 31.58,
+   "river_p99": 76.348
+  },
+  {
+   "zone_id": "WX_031",
+   "lat": -1.24155,
+   "lon": 37.09145,
+   "segments": 708,
+   "river_p95": 32.27,
+   "river_p99": 108.14
+  }
+ ]
+}

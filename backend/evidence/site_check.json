@@ -1,0 +1,72 @@
+{
+ "summary": {
+  "sites": 8,
+  "sites_rated_low": 5,
+  "sites_rated_medium_or_high": 3,
+  "median_city_percentile": 0.37,
+  "city_baseline_tiers": {
+   "Low": 0.465,
+   "Medium": 0.234,
+   "High": 0.217,
+   "Unavailable": 0.084
+  }
+ },
+ "sites": [
+  {
+   "site": "Mathare 4A",
+   "tier": "High",
+   "susceptibility": 0.758,
+   "city_percentile": 0.86,
+   "distance_to_road_m": 30.9
+  },
+  {
+   "site": "Mukuru kwa Reuben",
+   "tier": "High",
+   "susceptibility": 0.66,
+   "city_percentile": 0.81,
+   "distance_to_road_m": 52.1
+  },
+  {
+   "site": "Likoni Bridge, South B",
+   "tier": "Low",
+   "susceptibility": 0.251,
+   "city_percentile": 0.41,
+   "distance_to_road_m": 46.5
+  },
+  {
+   "site": "Kariokor",
+   "tier": "Low",
+   "susceptibility": 0.226,
+   "city_percentile": 0.33,
+   "distance_to_road_m": 11.2
+  },
+  {
+   "site": "Utawala",
+   "tier": "Medium",
+   "susceptibility": 0.465,
+   "city_percentile": 0.66,
+   "distance_to_road_m": 35.2
+  },
+  {
+   "site": "Ruai bypass at Kangundo Rd",
+   "tier": "Low",
+   "susceptibility": 0.153,
+   "city_percentile": 0.13,
+   "distance_to_road_m": 30.0
+  },
+  {
+   "site": "Seasons Road",
+   "tier": "Low",
+   "susceptibility": 0.225,
+   "city_percentile": 0.33,
+   "distance_to_road_m": 24.5
+  },
+  {
+   "site": "Jogoo Road",
+   "tier": "Low",
+   "susceptibility": 0.226,
+   "city_percentile": 0.33,
+   "distance_to_road_m": 53.9
+  }
+ ]
+}

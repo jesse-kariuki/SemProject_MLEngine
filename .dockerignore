@@ -1,0 +1,7 @@
+# Allowlist: exclude everything, then add only what the image needs.
+*
+!backend/requirements.txt
+!backend/app
+!backend/assets
+**/__pycache__
+**/*.pyc
