@@ -1,0 +1,21 @@
+# Recreated by every run of the notebook
+logs/
+models/
+outputs/*
+!outputs/tables/
+outputs/tables/*
+!outputs/tables/asset_inventory.csv
+data/interim/hazard_cells.gpkg
+data/interim/uncovered_*.gpkg
+data/processed/*
+!data/processed/static_segment_features.parquet
+
+# Raw downloads (too large for the repository, see README.md)
+data/raw/osm_shapefiles/
+data/raw/dem/
+data/raw/landcover/
+data/raw/openmeteo_json/
+
+__pycache__/
+.venv/
+.ipynb_checkpoints/

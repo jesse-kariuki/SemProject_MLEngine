@@ -1,0 +1,3 @@
+asset,path,crs,width,height,pixel_x,pixel_y,bounds,dtype,nodata,units,boundary_fraction_covered
+dem,C:\Users\kariu\Documents\floodguard\data\raw\dem\S02E036.tif,EPSG:4326,3601,3601,0.0002777777777777778,0.0002777777777777778,"(35.99986, -2.00014, 37.00014, -0.99986)",int16,-32768.0,,0.88
+landcover,C:\Users\kariu\Documents\floodguard\data\raw\landcover\LCFM_LCM-10_V100_2020_S03E036_MAP.tif,EPSG:4326,36000,36000,8.333333333333333e-05,8.333333333333333e-05,"(36.0, -3.0, 39.0, 0.0)",uint8,255.0,,1.0
