@@ -1,6 +1,6 @@
-# Final notebook: RandomForests_Base
+# Final notebook: RandomForest_Final
 
-`RandomForests_Base.ipynb` runs the whole road flood-susceptibility pipeline for Nairobi: weather grid, static
+`RandomForest_Final.ipynb` runs the whole road flood-susceptibility pipeline for Nairobi: weather grid, static
 features, labels from the flood-hazard dataset, coverage check, Random Forest and logistic-regression
 training with spatial-block cross-validation, evaluation, and the per-road susceptibility map.
 
@@ -13,7 +13,7 @@ cd final_notebook
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt jupyter
-jupyter notebook RandomForests_Base.ipynb
+jupyter notebook RandomForest_Final.ipynb
 ```
 
 Then choose **Run All**. Jupyter must be started inside `final_notebook/`, because the notebook looks for
